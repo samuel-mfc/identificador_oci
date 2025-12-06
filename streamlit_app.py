@@ -614,14 +614,19 @@ with tab3:
         st.info("👈 Carregue um arquivo MIRA na barra lateral para visualizar a tabela.")
     else:
         st.write(f"Total de registros filtrados: {len(df_filtrado)}")
-        st.dataframe(df_filtrado, use_container_width=True)
-
-        # Download do dataframe filtrado
-        csv_filtrado = df_filtrado.to_csv(index=False, sep=";")
+        # Remove colunas internas antes de exibir
+        colunas_remover = ['em_pacote', 'cid_compativel', 'id_oci_paciente']
+        df_exibir = df_filtrado.drop(columns=[c for c in colunas_remover if c in df_filtrado.columns])
+        
+        st.dataframe(df_exibir, use_container_width=True)
+        
+        # Download do dataframe filtrado (também sem as colunas internas)
+        csv_filtrado = df_exibir.to_csv(index=False, sep=";")
         st.download_button(
             label="⬇️ Baixar tabela filtrada (CSV)",
             data=csv_filtrado.encode("utf-8-sig"),
             file_name="oci_identificada_filtrada.csv",
             mime="text/csv"
         )
+
 
