@@ -386,7 +386,7 @@ if uploaded_file is not None:
             competencia_str=competencia_str
         )
 
-    st.success(f"Processamento concluído! {len(oci_identificada)} registros de OCI identificados.")
+    st.success(f"Processamento concluído! {len(oci_identificada)} procedimentos de OCI identificados.")
 
     # =====================================================
     # Filtros principais
