@@ -427,7 +427,7 @@ if uploaded_file is not None:
 # Abas: Instruções / Tabela / Gráficos
 # (sempre aparecem, mesmo sem upload)
 # =====================================================
-tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📈 Gráficos", "📊 Tabela final"])
+tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📈 Painel", "📊 Tabela final"])
 
 with tab1:
     st.header("📘 Instruções para o arquivo MIRA")
@@ -501,51 +501,87 @@ with tab1:
     )
 
 with tab2:
-    st.subheader("Distribuição por conduta")
+    st.subheader("Painel")
+
     if df_filtrado is None:
         st.info("👈 Carregue um arquivo MIRA na barra lateral para gerar os gráficos.")
     else:
         if not df_filtrado.empty:
-            cont_conduta = df_filtrado['conduta'].value_counts().reset_index()
-            cont_conduta.columns = ['conduta', 'quantidade']
-            st.bar_chart(cont_conduta.set_index('conduta'))
+            import plotly.express as px
 
-            # ==========================================================
-            # GRÁFICO: Quantidade de OCI identificadas (horizontal)
-            # ==========================================================
-            st.subheader("Quantidade de OCI identificadas")
+            # ---------------------------------------------
+            # Gráfico 1: Distribuição por conduta (horizontal)
+            # Contagem = número de linhas (registros)
+            # ---------------------------------------------
+            st.markdown("#### Distribuição por conduta")
 
-            # Contagem baseada em valores únicos de id_oci_paciente
-            cont_oci = (
-                df_filtrado.drop_duplicates(subset=['id_oci_paciente'])
-                .groupby('no_oci')['id_oci_paciente']
-                .count()
-                .reset_index()
-                .sort_values(by='id_oci_paciente', ascending=True)
+            cont_conduta = (
+                df_filtrado
+                .groupby("conduta")
+                .size()
+                .reset_index(name="quantidade")
+                .sort_values("quantidade", ascending=True)
             )
 
-            fig = px.bar(
+            fig1 = px.bar(
+                cont_conduta,
+                x="quantidade",
+                y="conduta",
+                orientation="h",
+                labels={
+                    "quantidade": "Quantidade de registros",
+                    "conduta": "Conduta"
+                }
+            )
+
+            fig1.update_traces(
+                text=cont_conduta["quantidade"],
+                textposition="outside"
+            )
+
+            fig1.update_layout(
+                height=400,
+                margin=dict(l=200)  # espaço para mostrar o texto completo do eixo Y
+            )
+
+            st.plotly_chart(fig1, use_container_width=True)
+
+            # ---------------------------------------------
+            # Gráfico 2: Quantidade de OCI identificadas (horizontal)
+            # Contagem = número de id_oci_paciente únicos
+            # ---------------------------------------------
+            st.markdown("#### Quantidade de OCI identificadas")
+
+            cont_oci = (
+                df_filtrado.drop_duplicates(subset=["id_oci_paciente"])
+                .groupby("no_oci")["id_oci_paciente"]
+                .count()
+                .reset_index()
+                .sort_values(by="id_oci_paciente", ascending=True)
+            )
+
+            fig2 = px.bar(
                 cont_oci,
                 x="id_oci_paciente",
                 y="no_oci",
                 orientation="h",
                 labels={
-                    "id_oci_paciente": "Quantidade",
+                    "id_oci_paciente": "Quantidade de OCIs únicas",
                     "no_oci": "OCI"
                 }
             )
 
-            fig.update_traces(
+            fig2.update_traces(
                 text=cont_oci["id_oci_paciente"],
                 textposition="outside"
             )
 
-            fig.update_layout(
+            fig2.update_layout(
                 height=600,
-                margin=dict(l=200),
+                margin=dict(l=200)
             )
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig2, use_container_width=True)
 
         else:
             st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
