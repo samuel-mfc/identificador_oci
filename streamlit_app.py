@@ -438,15 +438,18 @@ if uploaded_file is not None:
 
     with tab2:
         st.subheader("Distribuição por conduta")
+    
         if not df_filtrado.empty:
+            # Gráfico de conduta (mantido)
             cont_conduta = df_filtrado['conduta'].value_counts().reset_index()
             cont_conduta.columns = ['conduta', 'quantidade']
             st.bar_chart(cont_conduta.set_index('conduta'))
     
-            # ===== GRÁFICO AJUSTADO =====
+            # ===== GRÁFICO DE OCI AJUSTADO =====
             st.subheader("Quantidade de OCI identificadas")
     
             import altair as alt
+            import textwrap
     
             # Contagem baseada em id_oci_paciente único
             cont_oci = (
@@ -455,40 +458,78 @@ if uploaded_file is not None:
                 .groupby('no_oci')
                 .size()
                 .reset_index(name='quantidade')
-                .sort_values('quantidade', ascending=True)
             )
     
-            # Define altura dinâmica e barras mais finas
+            # Ordenação customizável
+            opcoes_ordem = [
+                "Quantidade (crescente)",
+                "Quantidade (decrescente)",
+                "Nome da OCI (A–Z)",
+                "Nome da OCI (Z–A)",
+            ]
+            escolha_ordem = st.selectbox(
+                "Ordenar gráfico de OCI por:",
+                opcoes_ordem,
+                index=1  # padrão: Quantidade (decrescente)
+            )
+    
+            if escolha_ordem == "Quantidade (crescente)":
+                cont_oci = cont_oci.sort_values('quantidade', ascending=True)
+            elif escolha_ordem == "Quantidade (decrescente)":
+                cont_oci = cont_oci.sort_values('quantidade', ascending=False)
+            elif escolha_ordem == "Nome da OCI (A–Z)":
+                cont_oci = cont_oci.sort_values('no_oci', ascending=True)
+            elif escolha_ordem == "Nome da OCI (Z–A)":
+                cont_oci = cont_oci.sort_values('no_oci', ascending=False)
+    
+            # Quebra de linha automática nos nomes longos
+            wrap_width = 30  # nº de caracteres por linha
+            cont_oci['no_oci'] = cont_oci['no_oci'].fillna('')
+    
+            cont_oci['no_oci_wrapped'] = cont_oci['no_oci'].astype(str).apply(
+                lambda x: "\n".join(textwrap.wrap(x, width=wrap_width)) if isinstance(x, str) else x
+            )
+    
+            # Padding automático com base no maior pedaço de texto
+            linhas = cont_oci['no_oci_wrapped'].astype(str).str.split("\n")
+            max_line_len = linhas.map(lambda parts: max(len(p) for p in parts) if parts else 0).max()
+            left_padding = int(max_line_len * 7.0)  # fator de ajuste da largura do rótulo
+    
+            # Altura dinâmica do gráfico
+            bar_size = 12
             n_oci = len(cont_oci)
-            bar_size = 12  # espessura da barra
             chart_height = max(200, n_oci * (bar_size + 6))
     
             chart = (
-                alt.Chart(cont_oci)
+                alt.Chart(
+                    cont_oci,
+                    padding={"left": left_padding, "right": 20, "top": 10, "bottom": 10}
+                )
                 .mark_bar(size=bar_size)
                 .encode(
                     x=alt.X('quantidade:Q', title='Quantidade'),
                     y=alt.Y(
-                        'no_oci:N',
+                        'no_oci_wrapped:N',
                         title='OCI',
-                        sort='-x',
+                        sort=cont_oci['no_oci_wrapped'].tolist(),
                         axis=alt.Axis(
-                            labelLimit=1000,   # evita cortar o texto
+                            labelLimit=10000,
                             labelAlign='left',
-                            labelPadding=4
+                            labelPadding=8
                         )
                     ),
                     tooltip=['no_oci', 'quantidade']
                 )
                 .properties(
-                    width=700,
                     height=chart_height
+                    # width fica automático via use_container_width=True
                 )
             )
     
-            # use_container_width=False para respeitar width/height definidos
-            st.altair_chart(chart, use_container_width=False)
-            # ============================
+            # largura automática ocupando o container
+            st.altair_chart(chart, use_container_width=True)
+    
+            # ================================
     
         else:
             st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
