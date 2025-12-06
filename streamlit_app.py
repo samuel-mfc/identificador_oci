@@ -608,7 +608,7 @@ with tab2:
             st.info("Nenhum dado após aplicar os filtros para gerar o painel.")
 
 with tab3:
-    st.subheader("Tabela de OCIs identificadas (após filtros)")
+    st.subheader("Tabela de procedimentos de OCI identificados (após filtros)")
 
     if df_filtrado is None:
         st.info("👈 Carregue um arquivo MIRA na barra lateral para visualizar a tabela.")
