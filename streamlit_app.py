@@ -444,7 +444,7 @@ if uploaded_file is not None:
             st.bar_chart(cont_conduta.set_index('conduta'))
     
             # ==========================================================
-            # NOVO GRÁFICO: Quantidade de OCI identificadas
+            # NOVO GRÁFICO: Quantidade de OCI identificadas (horizontal)
             # ==========================================================
             st.subheader("Quantidade de OCI identificadas")
     
@@ -457,13 +457,26 @@ if uploaded_file is not None:
                 .sort_values(by='id_oci_paciente', ascending=True)
             )
     
-            # Gráfico de barras horizontais
-            st.bar_chart(
-                cont_oci.set_index('no_oci'),
-                height=400
+            # Gráfico de barras horizontais (Plotly)
+            import plotly.express as px
+    
+            fig = px.bar(
+                cont_oci,
+                x="id_oci_paciente",
+                y="no_oci",
+                orientation="h",            # <-- AQUI define barras horizontais
+                labels={
+                    "id_oci_paciente": "Quantidade",
+                    "no_oci": "OCI"
+                }
             )
     
-            st.caption("Obs.: Cada barra representa o número de OCIs únicas identificadas (id_oci_paciente).")
+            fig.update_layout(
+                height=600,
+                margin=dict(l=200)  # padding para mostrar legenda completa
+            )
+    
+            st.plotly_chart(fig, use_container_width=True)
     
         else:
             st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
