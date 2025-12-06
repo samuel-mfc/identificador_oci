@@ -451,7 +451,7 @@ if uploaded_file is not None:
             st.subheader("Quantidade de OCI identificadas")
     
             # Função para quebrar textos longos
-            def quebrar_texto(texto, n=50):
+            def quebrar_texto(texto, n=100):
                 if len(texto) <= n:
                     return texto
                 return "<br>".join([texto[i:i+n] for i in range(0, len(texto), n)])
