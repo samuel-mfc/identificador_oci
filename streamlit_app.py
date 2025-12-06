@@ -328,14 +328,37 @@ def calcular_competencias(df_mira):
 
 st.set_page_config(page_title="Identificador de OCI", layout="wide")
 
-st.title("🔍 Identificador de OCI a partir da MIRA")
+st.title("🔍 Identificador de OCI a partir do MIRA")
+
+# Orientações sobre o arquivo de entrada (MIRA)
+st.markdown("""
+### 📁 Orientações para o arquivo MIRA
+
+Para que o processamento funcione corretamente, o arquivo MIRA precisa ter, **no mínimo**, as colunas abaixo,
+com **esses nomes exatos**:
+
+- id_registro – identificador único do registro/linha.
+- id_paciente – identificador único do paciente (CPF).
+- co_procedimento – código SIGTAP do procedimento.
+- dt_solicitacao – data da solicitação do procedimento.
+- dt_execucao – data de execução do procedimento (pode estar em branco quando não realizado).
+- cbo_executante – CBO do profissional executante (obrigatório para procedimentos do grupo 03 e 04).
+- cid_motivo – CID informado como motivo/diagnóstico para o procedimento (pode estar em branco quando não houver esse dado).
+
+> O arquivo deve estar em formato .csv ou .xls ou .xlsx
+> As datas devem estar em formato reconhecível (por exemplo: `YYYY-MM-DD` ou `DD/MM/YYYY`).
+> Caso o arquivo esteja em formato **CSV** deve conter separador padrão (vírgula ou ponto e vírgula, conforme sua exportação).
+""")
+
+st.divider()
 
 st.sidebar.header("Configurações")
 
+
 # 2.1 Upload da MIRA
 uploaded_file = st.sidebar.file_uploader(
-    "Carregue o arquivo MIRA (.csv)",
-    type=["csv"]
+    "Carregue o arquivo MIRA (.csv ou .xls ou .xlsx)",
+    type=["csv", "xlsx", "xls"]
 )
 
 # Carrega bases auxiliares fixas da pasta bases_auxiliares
