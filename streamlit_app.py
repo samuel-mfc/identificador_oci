@@ -481,7 +481,7 @@ if uploaded_file is not None:
                     tooltip=['no_oci', 'quantidade']
                 )
                 .properties(
-                    width=900,
+                    width=1000,
                     height=chart_height
                 )
             )
