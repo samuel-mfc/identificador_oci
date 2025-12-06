@@ -437,18 +437,34 @@ if uploaded_file is not None:
         )
 
     with tab2:
-        st.subheader("Distribuição por conduta")
-        if not df_filtrado.empty:
-            cont_conduta = df_filtrado['conduta'].value_counts().reset_index()
-            cont_conduta.columns = ['conduta', 'quantidade']
-            st.bar_chart(cont_conduta.set_index('conduta'))
+    st.subheader("Distribuição por conduta")
+    if not df_filtrado.empty:
+        cont_conduta = df_filtrado['conduta'].value_counts().reset_index()
+        cont_conduta.columns = ['conduta', 'quantidade']
+        st.bar_chart(cont_conduta.set_index('conduta'))
 
-            st.subheader("Top 15 OCIs por quantidade (após filtros)")
-            cont_oci = df_filtrado['no_oci'].value_counts().head(15).reset_index()
-            cont_oci.columns = ['no_oci', 'quantidade']
-            st.bar_chart(cont_oci.set_index('no_oci'))
-        else:
-            st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
+        # ===== NOVO GRÁFICO ALTERADO =====
+        st.subheader("Quantidade de OCI identificadas")
+
+        # Contagem usando valores únicos de id_oci_paciente
+        cont_oci = (
+            df_filtrado[['id_oci_paciente', 'no_oci']]
+            .drop_duplicates(subset=['id_oci_paciente'])
+            .groupby('no_oci')
+            .size()
+            .reset_index(name='quantidade')
+            .sort_values('quantidade', ascending=True)  # ordenar para barra horizontal
+        )
+
+        st.bar_chart(
+            cont_oci.set_index('no_oci'),
+            use_container_width=True,
+            horizontal=True
+        )
+        # ==================================
+
+    else:
+        st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
 
 else:
     st.info("👈 Carregue um arquivo MIRA em formato CSV na barra lateral para iniciar.")
