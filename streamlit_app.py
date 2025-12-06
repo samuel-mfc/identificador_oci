@@ -438,75 +438,29 @@ if uploaded_file is not None:
 
     with tab2:
         st.subheader("Distribuição por conduta")
-    
         if not df_filtrado.empty:
             cont_conduta = df_filtrado['conduta'].value_counts().reset_index()
             cont_conduta.columns = ['conduta', 'quantidade']
             st.bar_chart(cont_conduta.set_index('conduta'))
     
-            # ===== GRÁFICO DE OCI AJUSTADO =====
+            # ===== NOVO GRÁFICO ALTERADO =====
             st.subheader("Quantidade de OCI identificadas")
     
-            import altair as alt
-    
-            # Contagem baseada em id_oci_paciente único
+            # Contagem usando valores únicos de id_oci_paciente
             cont_oci = (
                 df_filtrado[['id_oci_paciente', 'no_oci']]
                 .drop_duplicates(subset=['id_oci_paciente'])
                 .groupby('no_oci')
                 .size()
                 .reset_index(name='quantidade')
-                .sort_values('quantidade', ascending=True)
+                .sort_values('quantidade', ascending=True)  # ordenar para barra horizontal
             )
     
-            # --- função para quebrar texto em múltiplas linhas ---
-            def wrap_text(text, width=30):
-                if not isinstance(text, str):
-                    text = str(text)
-                return "\n".join(text[i:i+width] for i in range(0, len(text), width))
-    
-            # cria coluna com texto quebrado
-            cont_oci["no_oci_wrapped"] = cont_oci["no_oci"].astype(str).apply(lambda x: wrap_text(x, 30))
-    
-            # --- padding automático com base no maior pedaço de texto ---
-            max_line_len = (
-                cont_oci["no_oci_wrapped"]
-                .str.split("\n")
-                .apply(lambda linhas: max(len(l) for l in linhas))
-                .max()
+            st.bar_chart(
+                cont_oci.set_index('no_oci'),
+                use_container_width=True,
+                horizontal=True
             )
-            left_padding = int(max_line_len * 7.5)  # ~7,5 px por caractere (ajustável)
-    
-            # configurações das barras
-            bar_size = 12
-            n_oci = len(cont_oci)
-            chart_height = max(200, n_oci * (bar_size + 6))
-    
-            chart = (
-                alt.Chart(cont_oci)
-                .mark_bar(size=bar_size)
-                .encode(
-                    x=alt.X("quantidade:Q", title="Quantidade"),
-                    y=alt.Y(
-                        "no_oci_wrapped:N",
-                        title=None,
-                        sort="-x",
-                        axis=alt.Axis(
-                            labelLimit=10000,
-                            labelAlign="right",
-                            labelPadding=40,   # AQUI empurra o texto pra esquerda e as barras "ficam mais pra direita"
-                        ),
-                    ),
-                    tooltip=["no_oci", "quantidade"],
-                )
-                .properties(
-                    width="container",
-                    height=chart_height,
-                )
-            )
-    
-            # usa toda a largura do container
-            st.altair_chart(chart, use_container_width=True)
             # ==================================
     
         else:
