@@ -426,57 +426,57 @@ if uploaded_file is not None:
     tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📊 Tabela final", "📈 Gráficos"])
     
     with tab1:
-    st.header("📘 Instruções para o arquivo MIRA")
-
-    st.markdown("""
-    Para que o processamento funcione corretamente, o arquivo MIRA enviado deve conter 
-    **pelo menos as seguintes colunas**, com **esses nomes exatos**:
-
-    ### 🔑 Colunas obrigatórias
-
-    - id_registro – identificador único do registro/linha.
-    - id_paciente – identificador único do paciente (CPF).
-    - co_procedimento – código SIGTAP do procedimento.
-    - dt_solicitacao – data da solicitação do procedimento.
-    - dt_execucao – data de execução do procedimento (pode estar em branco quando não realizado).
-    - cbo_executante – CBO do profissional executante (obrigatório para procedimentos do grupo 03 e 04).
-    - cid_motivo – CID informado como motivo/diagnóstico para o procedimento (pode estar em branco quando não houver esse dado).
-
-    ### 📌 Observações importantes
-
-    - A coluna **dt_execucao** é usada para identificar competência e determinar se o procedimento
-      foi realizado; ela deve estar em formato de data conhecido (`YYYY-MM-DD` ou `DD/MM/YYYY`).
-    - O arquivo deve estar no formato **CSV**, **XLS** ou **XLSX**.
-    - Caso use formato **CSV** os separadores aceitos são vírgula `,` ou ponto e vírgula `;` (o Streamlit detecta automaticamente).
-    - Colunas adicionais são aceitas e não atrapalham o processamento.
-
-    ### ℹ️ Dica
-    Caso você tenha dúvidas sobre o conteúdo, abra seu arquivo antes de subir para verificar se
-    os nomes das colunas estão corretos.
-
-    ### 📁 Estrutura recomendada do CSV
-    """)    
-    # Criar arquivo modelo em memória
-    modelo_df = pd.DataFrame(columns=[
-        "id_registro",
-        "id_paciente",
-        "co_procedimento",
-        "dt_solicitacao",
-        "dt_execucao",
-        "cbo_executante",
-        "cid_motivo"
-    ])
+        st.header("📘 Instruções para o arquivo MIRA")
     
-    buffer = io.BytesIO()
-    modelo_df.to_excel(buffer, index=False, sheet_name="Modelo_MIRA")
-    buffer.seek(0)
+        st.markdown("""
+        Para que o processamento funcione corretamente, o arquivo MIRA enviado deve conter 
+        **pelo menos as seguintes colunas**, com **esses nomes exatos**:
     
-    st.download_button(
-        label="📥 Baixar arquivo modelo (.xlsx)",
-        data=buffer,
-        file_name="modelo_mira.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        ### 🔑 Colunas obrigatórias
+    
+        - id_registro – identificador único do registro/linha.
+        - id_paciente – identificador único do paciente (CPF).
+        - co_procedimento – código SIGTAP do procedimento.
+        - dt_solicitacao – data da solicitação do procedimento.
+        - dt_execucao – data de execução do procedimento (pode estar em branco quando não realizado).
+        - cbo_executante – CBO do profissional executante (obrigatório para procedimentos do grupo 03 e 04).
+        - cid_motivo – CID informado como motivo/diagnóstico para o procedimento (pode estar em branco quando não houver esse dado).
+    
+        ### 📌 Observações importantes
+    
+        - A coluna **dt_execucao** é usada para identificar competência e determinar se o procedimento
+          foi realizado; ela deve estar em formato de data conhecido (`YYYY-MM-DD` ou `DD/MM/YYYY`).
+        - O arquivo deve estar no formato **CSV**, **XLS** ou **XLSX**.
+        - Caso use formato **CSV** os separadores aceitos são vírgula `,` ou ponto e vírgula `;` (o Streamlit detecta automaticamente).
+        - Colunas adicionais são aceitas e não atrapalham o processamento.
+    
+        ### ℹ️ Dica
+        Caso você tenha dúvidas sobre o conteúdo, abra seu arquivo antes de subir para verificar se
+        os nomes das colunas estão corretos.
+    
+        ### 📁 Estrutura recomendada do CSV
+        """)    
+        # Criar arquivo modelo em memória
+        modelo_df = pd.DataFrame(columns=[
+            "id_registro",
+            "id_paciente",
+            "co_procedimento",
+            "dt_solicitacao",
+            "dt_execucao",
+            "cbo_executante",
+            "cid_motivo"
+        ])
+        
+        buffer = io.BytesIO()
+        modelo_df.to_excel(buffer, index=False, sheet_name="Modelo_MIRA")
+        buffer.seek(0)
+        
+        st.download_button(
+            label="📥 Baixar arquivo modelo (.xlsx)",
+            data=buffer,
+            file_name="modelo_mira.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
     with tab2:
         st.subheader("Tabela de OCIs identificadas (após filtros)")
