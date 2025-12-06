@@ -458,9 +458,6 @@ if uploaded_file is not None:
                 .sort_values(by='id_oci_paciente', ascending=True)
             )
     
-            # Gráfico de barras horizontais (Plotly)
-            import plotly.express as px
-    
             fig = px.bar(
                 cont_oci,
                 x="id_oci_paciente",
