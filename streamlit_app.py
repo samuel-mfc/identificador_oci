@@ -443,25 +443,27 @@ if uploaded_file is not None:
             cont_conduta.columns = ['conduta', 'quantidade']
             st.bar_chart(cont_conduta.set_index('conduta'))
     
-            # ===== NOVO GRÁFICO ALTERADO =====
+            # ==========================================================
+            # NOVO GRÁFICO: Quantidade de OCI identificadas
+            # ==========================================================
             st.subheader("Quantidade de OCI identificadas")
     
-            # Contagem usando valores únicos de id_oci_paciente
+            # Contagem baseada em valores únicos de id_oci_paciente
             cont_oci = (
-                df_filtrado[['id_oci_paciente', 'no_oci']]
-                .drop_duplicates(subset=['id_oci_paciente'])
-                .groupby('no_oci')
-                .size()
-                .reset_index(name='quantidade')
-                .sort_values('quantidade', ascending=True)  # ordenar para barra horizontal
+                df_filtrado.drop_duplicates(subset=['id_oci_paciente'])
+                .groupby('no_oci')['id_oci_paciente']
+                .count()
+                .reset_index()
+                .sort_values(by='id_oci_paciente', ascending=True)
             )
     
+            # Gráfico de barras horizontais
             st.bar_chart(
                 cont_oci.set_index('no_oci'),
-                use_container_width=True,
-                horizontal=True
+                height=400
             )
-            # ==================================
+    
+            st.caption("Obs.: Cada barra representa o número de OCIs únicas identificadas (id_oci_paciente).")
     
         else:
             st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
