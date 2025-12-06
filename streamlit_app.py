@@ -459,24 +459,30 @@ if uploaded_file is not None:
             )
     
             # Gráfico de barras horizontais (Plotly)
-            import plotly.express as px
     
             fig = px.bar(
                 cont_oci,
                 x="id_oci_paciente",
                 y="no_oci",
-                orientation="h",            # <-- AQUI define barras horizontais
+                orientation="h",
                 labels={
                     "id_oci_paciente": "Quantidade",
                     "no_oci": "OCI"
                 }
             )
-    
+            
+            # 🔹 Adiciona os valores dentro das barras
+            fig.update_traces(
+                text=cont_oci["id_oci_paciente"],
+                textposition="outside"   # use "inside" se quiser o texto dentro
+            )
+            
+            # 🔹 Ajustes visuais
             fig.update_layout(
                 height=600,
-                margin=dict(l=200)  # padding para mostrar legenda completa
+                margin=dict(l=200),
             )
-    
+            
             st.plotly_chart(fig, use_container_width=True)
     
         else:
