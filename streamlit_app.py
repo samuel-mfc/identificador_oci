@@ -1,73 +1,16 @@
-import streamlit as st
+# streamlit_app.py
+
+import os
 import pandas as pd
 import numpy as np
-from pathlib import Path
+import streamlit as st
 
-# ============================================
-# CONFIGURAÇÃO BÁSICA DA PÁGINA
-# ============================================
-st.set_page_config(
-    page_title="Identificador de OCI",
-    layout="wide",
-)
-
-st.title("Identificador de OCI")
-
-st.write(
-    """
-    Faça o upload da base MIRA, e o app irá identificar as OCIs, 
-    gerar a tabela final e permitir filtros + download.
-    """
-)
-
-# ============================================
-# 1. CARREGAR BASES AUXILIARES (CACHEADAS)
-# ============================================
-BASE_DIR = Path(__file__).parent
-AUX_DIR = BASE_DIR / "bases_auxiliares"
-
-
-@st.cache_data(show_spinner="Carregando bases auxiliares...")
-def carregar_bases_auxiliares():
-    """
-    Ajuste aqui os nomes/extensões reais dos arquivos na pasta bases_auxiliares.
-    Exemplo assumindo .parquet. Troque para .csv se necessário.
-    """
-    df_pate = pd.read_csv(AUX_DIR / "df_pate.csv")
-    pacotes = pd.read_csv(AUX_DIR / "pacotes.csv")
-    oci_nome = pd.read_csv(AUX_DIR / "oci_nome.csv")
-    cbo = pd.read_csv(AUX_DIR / "cbo.csv")
-    idade_sexo = pd.read_csv(AUX_DIR / "idade_sexo.csv")
-    cid = pd.read_csv(AUX_DIR / "cid.csv")
-
-    bases = {
-        "df_pate": df_pate,
-        "pacotes": pacotes,
-        "oci_nome": oci_nome,
-        "cbo": cbo,
-        "idade_sexo": idade_sexo,
-        "cid": cid,
-    }
-    return bases
-
-
-bases_aux = carregar_bases_auxiliares()
-df_pate = bases_aux["df_pate"]
-pacotes = bases_aux["pacotes"]
-oci_nome = bases_aux["oci_nome"]
-cbo = bases_aux["cbo"]
-idade_sexo = bases_aux["idade_sexo"]
-cid = bases_aux["cid"]
-
-
-# ============================================
-# 2. FUNÇÕES PRINCIPAIS (AQUI VAI SEU SCRIPT)
-# ============================================
+# =========================================================
+# 1. Funções de processamento (adaptadas do seu script)
+# =========================================================
 
 def listar_procedimentos(df_procedimentos):
-    # Mesma lógica do seu script
     procedimentos_por_paciente = {}
-
     for id_paciente in df_procedimentos['id_paciente'].unique():
         procedimentos_paciente = (
             df_procedimentos[df_procedimentos['id_paciente'] == id_paciente]['co_procedimento']
@@ -75,7 +18,6 @@ def listar_procedimentos(df_procedimentos):
             .tolist()
         )
         procedimentos_por_paciente[id_paciente] = procedimentos_paciente
-
     return procedimentos_por_paciente
 
 
@@ -179,8 +121,8 @@ def verificar_pacotes(procedimentos_por_paciente, regras_pacotes):
 def marcar_solicitacoes_em_pacote(df_mira, resultados):
     registros = []
 
-    for id_paciente, pacotes_result in resultados.items():
-        for id_pacote, dados in pacotes_result.items():
+    for id_paciente, pacotes_dict in resultados.items():
+        for id_pacote, dados in pacotes_dict.items():
             if not dados['status']:
                 continue
 
@@ -224,23 +166,12 @@ def marcar_solicitacoes_em_pacote(df_mira, resultados):
     return df_out
 
 
-def processar_mira(df_mira, df_pate, pacotes, oci_nome, cid=None):
-    """
-    Reaproveite aqui o passo a passo do seu script:
-    - merge com df_pate
-    - tratamento de datas
-    - filtro por competência
-    - criação de solicitacoes_oci
-    - aplicação das funções de pacote
-    - merge com cid e oci_nome
-    - criação da coluna 'conduta'
+def processar_mira(df_mira, df_pate, cid, oci_nome, pacotes, competencia_str=None):
+    # Limpeza básica
+    df_mira = df_mira.copy()
+    df_mira.dropna(subset=['id_registro', 'id_paciente'], inplace=True)
 
-    No final, retorne o dataframe 'oci_identificada'.
-    """
-
-    # --- Exemplo mínimo só para estruturar (substitua pelo seu código completo) ---
-
-    # Merge com df_pate
+    # Merge com df_pate para filtrar procedimentos de OCI
     df_mira = pd.merge(
         df_mira,
         df_pate,
@@ -251,63 +182,87 @@ def processar_mira(df_mira, df_pate, pacotes, oci_nome, cid=None):
     )
     df_mira.drop(columns=['codigo', 'merge'], inplace=True)
 
-    # Converter datas
-    df_mira['dt_execucao'] = pd.to_datetime(df_mira['dt_execucao'])
-    df_mira['dt_solicitacao'] = pd.to_datetime(df_mira['dt_solicitacao'])
+    # Datas
+    df_mira['dt_solicitacao'] = pd.to_datetime(df_mira['dt_solicitacao'], errors='coerce')
+    df_mira['dt_execucao'] = pd.to_datetime(df_mira['dt_execucao'], errors='coerce')
 
-    # Aqui você pode trazer exatamente aquele trecho que calcula 'competencias'
-    # e filtra mês selecionado + anterior.
-    # Por enquanto, vamos manter sem filtro de competência.
+    # Concatena procedimento|CBO para grupo 03/04
+    mask = (
+        df_mira['co_procedimento'].astype(str).str.startswith(('03', '04')) &
+        (df_mira['cbo_executante'].astype(str) != '')
+    )
+    df_mira.loc[mask, 'co_procedimento'] = (
+        df_mira.loc[mask, 'co_procedimento'].astype(str) + '|' + df_mira.loc[mask, 'cbo_executante'].astype(str)
+    )
 
-    # Procedimentos produzidos / não produzidos
+    # Procedimentos executados
     procedimentos_produzidos = df_mira.query('dt_execucao.notna()')
+
+    # Se quiser usar competência (mês atual + anterior)
+    if not procedimentos_produzidos.empty and competencia_str is not None:
+        mes_sel, ano_sel = competencia_str.split("/")
+        mes_sel = int(mes_sel)
+        ano_sel = int(ano_sel)
+
+        if mes_sel == 1:
+            mes_ant = 12
+            ano_ant = ano_sel - 1
+        else:
+            mes_ant = mes_sel - 1
+            ano_ant = ano_sel
+
+        mascara = (
+            ((procedimentos_produzidos['dt_execucao'].dt.month == mes_sel) &
+             (procedimentos_produzidos['dt_execucao'].dt.year == ano_sel)) |
+            ((procedimentos_produzidos['dt_execucao'].dt.month == mes_ant) &
+             (procedimentos_produzidos['dt_execucao'].dt.year == ano_ant))
+        )
+
+        procedimentos_produzidos = procedimentos_produzidos[mascara]
+
+    # Não realizados
     nao_realizados = df_mira.query('dt_execucao.isna()')
 
+    # Junta de novo
     solicitacoes_oci = pd.concat([procedimentos_produzidos, nao_realizados], ignore_index=True)
 
     # 1) Listar procedimentos por paciente
     procedimentos_por_paciente = listar_procedimentos(solicitacoes_oci)
 
-    # 2) Preparar regras
+    # 2) Regras dos pacotes
     regras_pacotes = preparar_regras(pacotes)
 
     # 3) Verificar pacotes
     resultados = verificar_pacotes(procedimentos_por_paciente, regras_pacotes)
 
-    # 4) Marcar no df
+    # 4) DataFrame final com flag em_pacote
     solicitacoes_oci_marcadas = marcar_solicitacoes_em_pacote(solicitacoes_oci, resultados)
 
     # Filtra apenas solicitações que viraram OCI
     oci_identificada = solicitacoes_oci_marcadas.query('em_pacote == True').copy()
-    oci_identificada.drop(columns=['em_pacote'], inplace=True)
 
-    # Explode id_pacote se tiver múltiplos
-    oci_identificada["id_pacote"] = oci_identificada["id_pacote"].str.split(",")
+    # Explode id_pacote quando há múltiplas OCIs
+    oci_identificada["id_pacote"] = oci_identificada["id_pacote"].astype(str).str.split(",")
     oci_identificada = oci_identificada.explode("id_pacote", ignore_index=True)
     oci_identificada["id_pacote"] = oci_identificada["id_pacote"].str.strip()
     oci_identificada.loc[oci_identificada["id_pacote"] == "", "id_pacote"] = pd.NA
     oci_identificada["em_pacote"] = oci_identificada["id_pacote"].notna()
 
-    # Se existir df cid, aplicar compatibilidade
-    if cid is not None:
-        oci_identificada['cid_motivo'] = (
-            oci_identificada['cid_motivo'].astype(str).str.upper().str.strip()
-        )
+    # Compatibilidade CID
+    oci_identificada['cid_motivo'] = (
+        oci_identificada['cid_motivo'].astype(str).str.upper().str.strip()
+    )
 
-        oci_identificada = oci_identificada.merge(
-            cid.assign(cid_compativel=True),
-            how='left',
-            left_on=['id_pacote', 'cid_motivo'],
-            right_on=['CO_OCI', 'CO_CID']
-        )
+    oci_identificada = oci_identificada.merge(
+        cid.assign(cid_compativel=True),
+        how='left',
+        left_on=['id_pacote', 'cid_motivo'],
+        right_on=['CO_OCI', 'CO_CID']
+    )
+    oci_identificada = oci_identificada.drop(columns=['CO_OCI', 'CO_CID'])
+    oci_identificada['cid_compativel'] = oci_identificada['cid_compativel'].fillna(False)
 
-        oci_identificada = oci_identificada.drop(columns=['CO_OCI', 'CO_CID'])
-        oci_identificada['cid_compativel'] = oci_identificada['cid_compativel'].fillna(False)
-    else:
-        # Se não tiver cid, marca tudo como compatível (ajuste se quiser outra lógica)
-        oci_identificada['cid_compativel'] = True
-
-    # Merge com oci_nome
+    # Nome da OCI
     oci_identificada = pd.merge(
         oci_identificada,
         oci_nome,
@@ -317,11 +272,9 @@ def processar_mira(df_mira, df_pate, pacotes, oci_nome, cid=None):
     )
     oci_identificada.drop(columns=['co_oci'], inplace=True)
 
-    # id único por paciente + OCI
+    # ID composto
     oci_identificada['id_oci_paciente'] = (
-        oci_identificada['id_paciente'].astype(str)
-        + '|' +
-        oci_identificada['id_pacote'].astype(str)
+        oci_identificada['id_paciente'].astype(str) + '|' + oci_identificada['id_pacote'].astype(str)
     )
 
     # Conduta
@@ -329,8 +282,8 @@ def processar_mira(df_mira, df_pate, pacotes, oci_nome, cid=None):
         condlist=[
             oci_identificada['dt_execucao'].notna() & oci_identificada['cid_compativel'],
             oci_identificada['dt_execucao'].notna() & ~oci_identificada['cid_compativel'],
-            oci_identificada['dt_execucao'].isna()  & oci_identificada['cid_compativel'],
-            oci_identificada['dt_execucao'].isna()  & ~oci_identificada['cid_compativel']
+            oci_identificada['dt_execucao'].isna() & oci_identificada['cid_compativel'],
+            oci_identificada['dt_execucao'].isna() & ~oci_identificada['cid_compativel']
         ],
         choicelist=[
             'Faturar como OCI',
@@ -341,148 +294,161 @@ def processar_mira(df_mira, df_pate, pacotes, oci_nome, cid=None):
         default='indefinido'
     )
 
+    # Ordena por paciente
+    oci_identificada.sort_values(by='id_paciente', inplace=True)
+
     return oci_identificada
 
 
-# ============================================
-# 3. SIDEBAR – UPLOAD & FILTROS
-# ============================================
+def calcular_competencias(df_mira):
+    df = df_mira.copy()
+    df['dt_execucao'] = pd.to_datetime(df['dt_execucao'], errors='coerce')
+    procedimentos_produzidos = df.query('dt_execucao.notna()')
+
+    if procedimentos_produzidos.empty:
+        return []
+
+    data_min = procedimentos_produzidos['dt_execucao'].min()
+    data_max = procedimentos_produzidos['dt_execucao'].max()
+
+    meses = pd.date_range(
+        data_min.to_period('M').to_timestamp(),
+        data_max.to_period('M').to_timestamp(),
+        freq='MS'
+    )
+
+    competencias = meses.strftime('%m/%Y').tolist()
+    return competencias
+
+
+# =========================================================
+# 2. Interface Streamlit
+# =========================================================
+
+st.set_page_config(page_title="Identificador de OCI", layout="wide")
+
+st.title("🔍 Identificador de OCI a partir da MIRA")
+
 st.sidebar.header("Configurações")
 
+# 2.1 Upload da MIRA
 uploaded_file = st.sidebar.file_uploader(
-    "Base MIRA (.csv)",
+    "Carregue o arquivo MIRA (.csv)",
     type=["csv"]
 )
 
-# (Mais tarde podemos adicionar aqui um selectbox de competência)
+# Carrega bases auxiliares fixas da pasta bases_auxiliares
+@st.cache_data
+def carregar_bases_auxiliares():
+    base_path = "bases_auxiliares"
+    df_pate = pd.read_csv(os.path.join(base_path, "df_pate.csv"), dtype=str)
+    pacotes = pd.read_csv(os.path.join(base_path, "pacotes.csv"), dtype=str)
+    cid = pd.read_csv(os.path.join(base_path, "cid.csv"), dtype=str)
+    oci_nome = pd.read_csv(os.path.join(base_path, "oci_nome.csv"), dtype=str)
+    # cbo, idade_sexo podem ser usados depois
+    return df_pate, pacotes, cid, oci_nome
 
+if uploaded_file is not None:
+    # 1) Ler MIRA
+    df_mira = pd.read_csv(uploaded_file, dtype=str)
 
-# ============================================
-# 4. PROCESSAMENTO E INTERFACE PRINCIPAL
-# ============================================
-if uploaded_file is None:
-    st.info("⬅️ Faça o upload da base MIRA na barra lateral para começar.")
-else:
-    # Leitura do MIRA enviado
-    # Ajuste o separador conforme sua base ("," ou ";")
-    df_mira = pd.read_csv(uploaded_file, dtype=str, sep=";")
+    # 2) Bases auxiliares
+    df_pate, pacotes, cid, oci_nome = carregar_bases_auxiliares()
 
-    st.subheader("Pré-visualização da base MIRA")
-    st.dataframe(df_mira.head(50), use_container_width=True)
+    # 3) Competências disponíveis
+    competencias = calcular_competencias(df_mira)
 
-    with st.spinner("Processando e identificando OCIs..."):
-        # Se você tiver a base cid carregada, passe como argumento
-        # oci_identificada = processar_mira(df_mira, df_pate, pacotes, oci_nome, cid)
-        oci_identificada = processar_mira(df_mira, df_pate, pacotes, oci_nome)
+    competencia_str = None
+    if len(competencias) > 0:
+        competencia_str = st.sidebar.selectbox(
+            "Competência (filtra mês escolhido + mês anterior)",
+            options=competencias,
+            index=len(competencias) - 1,  # por padrão, última competência
+        )
+    else:
+        st.sidebar.warning("Não foi possível calcular competências (sem dt_execucao válida).")
 
-    st.success("Processamento concluído!")
+    # 4) Processar MIRA -> OCI identificada
+    with st.spinner("Processando solicitações e identificando OCIs..."):
+        oci_identificada = processar_mira(
+            df_mira,
+            df_pate=df_pate,
+            cid=cid,
+            oci_nome=oci_nome,
+            pacotes=pacotes,
+            competencia_str=competencia_str
+        )
 
-    # ============================================
-    # TABS: TABELA FINAL  |  RESUMO & GRÁFICOS
-    # ============================================
-    tab_tabela, tab_resumo = st.tabs(["📊 Tabela final", "📈 Resumo & gráficos"])
+    st.success(f"Processamento concluído! {len(oci_identificada)} registros de OCI identificados.")
 
-    # ------------------ TABELA FINAL ------------------
-    with tab_tabela:
-        st.subheader("Tabela final de OCI identificadas")
+    # =====================================================
+    # Filtros principais
+    # =====================================================
+    st.sidebar.subheader("Filtros principais")
 
-        # Filtros básicos
-        col1, col2, col3 = st.columns(3)
+    condutas = sorted(oci_identificada['conduta'].dropna().unique().tolist())
+    conduta_sel = st.sidebar.multiselect(
+        "Conduta",
+        options=condutas,
+        default=condutas
+    )
 
-        with col1:
-            condutas_unicas = sorted(oci_identificada['conduta'].dropna().unique())
-            condutas_sel = st.multiselect(
-                "Filtrar por conduta",
-                condutas_unicas,
-                default=condutas_unicas
-            )
+    oci_nomes = sorted(oci_identificada['no_oci'].dropna().unique().tolist())
+    oci_sel = st.sidebar.multiselect(
+        "Nome da OCI",
+        options=oci_nomes,
+        default=oci_nomes[:20] if len(oci_nomes) > 20 else oci_nomes
+    )
 
-        with col2:
-            if "cid_compativel" in oci_identificada.columns:
-                cid_opt = st.multiselect(
-                    "CID compatível?",
-                    options=[True, False],
-                    default=[True, False]
-                )
-            else:
-                cid_opt = None
+    cid_options = ["Todos", "Compatível", "Incompatível"]
+    cid_choice = st.sidebar.radio("Compatibilidade CID", cid_options, index=0)
 
-        with col3:
-            if "no_oci" in oci_identificada.columns:
-                oci_unicas = sorted(
-                    oci_identificada['no_oci'].dropna().unique().tolist()
-                )
-                oci_sel = st.multiselect(
-                    "Filtrar por OCI",
-                    oci_unicas,
-                    default=oci_unicas[:10] if len(oci_unicas) > 10 else oci_unicas
-                )
-            else:
-                oci_sel = None
+    df_filtrado = oci_identificada.copy()
 
-        # Aplica filtros
-        df_filtrado = oci_identificada.copy()
+    if conduta_sel:
+        df_filtrado = df_filtrado[df_filtrado['conduta'].isin(conduta_sel)]
 
-        if condutas_sel:
-            df_filtrado = df_filtrado[df_filtrado['conduta'].isin(condutas_sel)]
+    if oci_sel:
+        df_filtrado = df_filtrado[df_filtrado['no_oci'].isin(oci_sel)]
 
-        if cid_opt is not None:
-            df_filtrado = df_filtrado[df_filtrado['cid_compativel'].isin(cid_opt)]
+    if cid_choice == "Compatível":
+        df_filtrado = df_filtrado[df_filtrado['cid_compativel'] == True]
+    elif cid_choice == "Incompatível":
+        df_filtrado = df_filtrado[df_filtrado['cid_compativel'] == False]
 
-        if oci_sel:
-            df_filtrado = df_filtrado[df_filtrado['no_oci'].isin(oci_sel)]
+    # =====================================================
+    # Abas: Tabela / Gráficos
+    # =====================================================
+    tab1, tab2 = st.tabs(["📊 Tabela final", "📈 Gráficos"])
 
-        st.write(f"Total de registros após filtros: **{len(df_filtrado)}**")
+    with tab1:
+        st.subheader("Tabela de OCIs identificadas (após filtros)")
+
+        st.write(f"Total de registros filtrados: {len(df_filtrado)}")
         st.dataframe(df_filtrado, use_container_width=True)
 
         # Download do dataframe filtrado
-        csv_filtrado = df_filtrado.to_csv(index=False).encode("utf-8-sig")
+        csv_filtrado = df_filtrado.to_csv(index=False, sep=";")
         st.download_button(
-            "⬇️ Baixar tabela filtrada (CSV)",
-            data=csv_filtrado,
+            label="⬇️ Baixar tabela filtrada (CSV)",
+            data=csv_filtrado.encode("utf-8-sig"),
             file_name="oci_identificada_filtrada.csv",
             mime="text/csv"
         )
 
-    # ------------------ RESUMO & GRÁFICOS ------------------
-    with tab_resumo:
-        st.subheader("Resumo e gráficos")
+    with tab2:
+        st.subheader("Distribuição por conduta")
+        if not df_filtrado.empty:
+            cont_conduta = df_filtrado['conduta'].value_counts().reset_index()
+            cont_conduta.columns = ['conduta', 'quantidade']
+            st.bar_chart(cont_conduta.set_index('conduta'))
 
-        # Contagem por conduta
-        contagem_conduta = (
-            oci_identificada
-            .groupby("conduta")['id_oci_paciente']
-            .nunique()
-            .reset_index(name="qtd_pacientes")
-        )
+            st.subheader("Top 15 OCIs por quantidade (após filtros)")
+            cont_oci = df_filtrado['no_oci'].value_counts().head(15).reset_index()
+            cont_oci.columns = ['no_oci', 'quantidade']
+            st.bar_chart(cont_oci.set_index('no_oci'))
+        else:
+            st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
 
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.markdown("**Pacientes por conduta**")
-            st.dataframe(contagem_conduta, use_container_width=True)
-
-        with col2:
-            st.markdown("**Gráfico – pacientes por conduta**")
-            st.bar_chart(
-                contagem_conduta.set_index("conduta")["qtd_pacientes"]
-            )
-
-        # Sugestão: outro gráfico por OCI
-        if "no_oci" in oci_identificada.columns:
-            contagem_oci = (
-                oci_identificada
-                .drop_duplicates(subset="id_oci_paciente")
-                .groupby("no_oci")['id_oci_paciente']
-                .count()
-                .sort_values(ascending=False)
-                .reset_index(name="qtd_pacientes")
-            )
-
-            st.markdown("**Top OCIs por número de pacientes**")
-            st.dataframe(contagem_oci.head(20), use_container_width=True)
-
-            st.markdown("**Gráfico – Top OCIs**")
-            st.bar_chart(
-                contagem_oci.set_index("no_oci")["qtd_pacientes"].head(20)
-            )
+else:
+    st.info("👈 Carregue um arquivo MIRA em formato CSV na barra lateral para iniciar.")
