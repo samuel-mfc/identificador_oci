@@ -57,7 +57,7 @@ pacotes = bases_aux["pacotes"]
 oci_nome = bases_aux["oci_nome"]
 cbo = bases_aux["cbo"]
 idade_sexo = bases_aux["idade_sexo"]
-cid = bases_aux["cid"]  se tiver
+cid = bases_aux["cid"]
 
 
 # ============================================
