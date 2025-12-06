@@ -447,7 +447,14 @@ if uploaded_file is not None:
             # ==========================================================
             # NOVO GRÁFICO: Quantidade de OCI identificadas (horizontal)
             # ==========================================================
+    
             st.subheader("Quantidade de OCI identificadas")
+    
+            # Função para quebrar textos longos
+            def quebrar_texto(texto, n=25):
+                if len(texto) <= n:
+                    return texto
+                return "<br>".join([texto[i:i+n] for i in range(0, len(texto), n)])
     
             # Contagem baseada em valores únicos de id_oci_paciente
             cont_oci = (
@@ -458,20 +465,23 @@ if uploaded_file is not None:
                 .sort_values(by='id_oci_paciente', ascending=True)
             )
     
+            # Aplicar quebra de linha nos nomes longos
+            cont_oci["no_oci_label"] = cont_oci["no_oci"].apply(lambda x: quebrar_texto(x, n=25))
+        
             fig = px.bar(
                 cont_oci,
                 x="id_oci_paciente",
-                y="no_oci",
-                orientation="h",            # <-- AQUI define barras horizontais
+                y="no_oci_label",          # usa o texto quebrado
+                orientation="h",
                 labels={
                     "id_oci_paciente": "Quantidade",
-                    "no_oci": "OCI"
+                    "no_oci_label": "OCI"
                 }
             )
     
             fig.update_layout(
                 height=600,
-                margin=dict(l=200)  # padding para mostrar legenda completa
+                margin=dict(l=220),  # espaço para as legendas quebradas
             )
     
             st.plotly_chart(fig, use_container_width=True)
