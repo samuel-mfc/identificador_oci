@@ -386,7 +386,7 @@ if uploaded_file is not None:
             competencia_str=competencia_str
         )
 
-    st.success(f"Processamento concluído! {len(oci_identificada)} procedimentos de OCI identificados.")
+    st.success(f"Processamento concluído! Confira o painel e utilize os filtros para exportar a tabela com os dados que quiser.")
 
     # =====================================================
     # Filtros principais
