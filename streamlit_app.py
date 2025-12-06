@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 import plotly.express as px
+import io
+
 
 # =========================================================
 # 1. Funções de processamento (adaptadas do seu script)
@@ -328,30 +330,7 @@ def calcular_competencias(df_mira):
 
 st.set_page_config(page_title="Identificador de OCI", layout="wide")
 
-st.title("🔍 Identificador de OCI a partir do MIRA")
-
-# Orientações sobre o arquivo de entrada (MIRA)
-st.markdown("""
-### 📁 Orientações para o arquivo MIRA
-
-Para que o processamento funcione corretamente, o arquivo MIRA precisa ter, **no mínimo**, as colunas abaixo,
-com **esses nomes exatos**:
-
-- id_registro – identificador único do registro/linha.
-- id_paciente – identificador único do paciente (CPF).
-- co_procedimento – código SIGTAP do procedimento.
-- dt_solicitacao – data da solicitação do procedimento.
-- dt_execucao – data de execução do procedimento (pode estar em branco quando não realizado).
-- cbo_executante – CBO do profissional executante (obrigatório para procedimentos do grupo 03 e 04).
-- cid_motivo – CID informado como motivo/diagnóstico para o procedimento (pode estar em branco quando não houver esse dado).
-
-Observações:
-- O arquivo deve estar em formato .csv ou .xls ou .xlsx.
-- As datas devem estar em formato reconhecível (por exemplo: `YYYY-MM-DD` ou `DD/MM/YYYY`).
-- Caso o arquivo esteja em formato **CSV** deve conter separador padrão (vírgula ou ponto e vírgula, conforme sua exportação).
-""")
-
-st.divider()
+st.title("🔍 Identificador de OCI a partir do Modelo de Informação de Regulação Assistencial (MIRA)")
 
 st.sidebar.header("Configurações")
 
@@ -444,9 +423,62 @@ if uploaded_file is not None:
     # =====================================================
     # Abas: Tabela / Gráficos
     # =====================================================
-    tab1, tab2 = st.tabs(["📊 Tabela final", "📈 Gráficos"])
-
+    tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📊 Tabela final", "📈 Gráficos"])
+    
     with tab1:
+    st.header("📘 Instruções para o arquivo MIRA")
+
+    st.markdown("""
+    Para que o processamento funcione corretamente, o arquivo MIRA enviado deve conter 
+    **pelo menos as seguintes colunas**, com **esses nomes exatos**:
+
+    ### 🔑 Colunas obrigatórias
+
+    - id_registro – identificador único do registro/linha.
+    - id_paciente – identificador único do paciente (CPF).
+    - co_procedimento – código SIGTAP do procedimento.
+    - dt_solicitacao – data da solicitação do procedimento.
+    - dt_execucao – data de execução do procedimento (pode estar em branco quando não realizado).
+    - cbo_executante – CBO do profissional executante (obrigatório para procedimentos do grupo 03 e 04).
+    - cid_motivo – CID informado como motivo/diagnóstico para o procedimento (pode estar em branco quando não houver esse dado).
+
+    ### 📌 Observações importantes
+
+    - A coluna **dt_execucao** é usada para identificar competência e determinar se o procedimento
+      foi realizado; ela deve estar em formato de data conhecido (`YYYY-MM-DD` ou `DD/MM/YYYY`).
+    - O arquivo deve estar no formato **CSV**, **XLS** ou **XLSX**.
+    - Caso use formato **CSV** os separadores aceitos são vírgula `,` ou ponto e vírgula `;` (o Streamlit detecta automaticamente).
+    - Colunas adicionais são aceitas e não atrapalham o processamento.
+
+    ### ℹ️ Dica
+    Caso você tenha dúvidas sobre o conteúdo, abra seu arquivo antes de subir para verificar se
+    os nomes das colunas estão corretos.
+
+    ### 📁 Estrutura recomendada do CSV
+    """)    
+    # Criar arquivo modelo em memória
+    modelo_df = pd.DataFrame(columns=[
+        "id_registro",
+        "id_paciente",
+        "co_procedimento",
+        "dt_solicitacao",
+        "dt_execucao",
+        "cbo_executante",
+        "cid_motivo"
+    ])
+    
+    buffer = io.BytesIO()
+    modelo_df.to_excel(buffer, index=False, sheet_name="Modelo_MIRA")
+    buffer.seek(0)
+    
+    st.download_button(
+        label="📥 Baixar arquivo modelo (.xlsx)",
+        data=buffer,
+        file_name="modelo_mira.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    with tab2:
         st.subheader("Tabela de OCIs identificadas (após filtros)")
 
         st.write(f"Total de registros filtrados: {len(df_filtrado)}")
@@ -461,7 +493,7 @@ if uploaded_file is not None:
             mime="text/csv"
         )
 
-    with tab2:
+    with tab3:
         st.subheader("Distribuição por conduta")
         if not df_filtrado.empty:
             cont_conduta = df_filtrado['conduta'].value_counts().reset_index()
