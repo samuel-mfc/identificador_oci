@@ -464,7 +464,7 @@ if uploaded_file is not None:
             chart_height = max(200, n_oci * (bar_size + 6))
     
             chart = (
-                alt.Chart(cont_oci)
+                alt.Chart(cont_oci, padding={"left": 160, "right": 20, "top": 10, "bottom": 10})
                 .mark_bar(size=bar_size)
                 .encode(
                     x=alt.X('quantidade:Q', title='Quantidade'),
@@ -473,15 +473,15 @@ if uploaded_file is not None:
                         title='OCI',
                         sort='-x',
                         axis=alt.Axis(
-                            labelLimit=1000,   # evita cortar o texto
+                            labelLimit=500,   # garante que os nomes não cortem
                             labelAlign='left',
-                            labelPadding=4
+                            labelPadding=10   # evita sobreposição com a barra
                         )
                     ),
                     tooltip=['no_oci', 'quantidade']
                 )
                 .properties(
-                    width=1000,
+                    width=1200,
                     height=chart_height
                 )
             )
