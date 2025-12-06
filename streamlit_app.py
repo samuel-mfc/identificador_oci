@@ -345,9 +345,10 @@ com **esses nomes exatos**:
 - cbo_executante – CBO do profissional executante (obrigatório para procedimentos do grupo 03 e 04).
 - cid_motivo – CID informado como motivo/diagnóstico para o procedimento (pode estar em branco quando não houver esse dado).
 
-O arquivo deve estar em formato .csv ou .xls ou .xlsx.
-As datas devem estar em formato reconhecível (por exemplo: `YYYY-MM-DD` ou `DD/MM/YYYY`).
-Caso o arquivo esteja em formato **CSV** deve conter separador padrão (vírgula ou ponto e vírgula, conforme sua exportação).
+Observações:
+- O arquivo deve estar em formato .csv ou .xls ou .xlsx.
+- As datas devem estar em formato reconhecível (por exemplo: `YYYY-MM-DD` ou `DD/MM/YYYY`).
+- Caso o arquivo esteja em formato **CSV** deve conter separador padrão (vírgula ou ponto e vírgula, conforme sua exportação).
 """)
 
 st.divider()
@@ -513,4 +514,4 @@ if uploaded_file is not None:
 
 
 else:
-    st.info("👈 Carregue um arquivo MIRA em formato CSV na barra lateral para iniciar.")
+    st.info("👈 Carregue um arquivo MIRA em formato CSV, XLS ou XLSX na barra lateral para iniciar.")
