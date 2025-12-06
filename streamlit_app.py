@@ -6,6 +6,8 @@ import numpy as np
 import streamlit as st
 import plotly.express as px
 import io
+from datetime import datetime
+
 
 
 # =========================================================
@@ -367,18 +369,11 @@ if uploaded_file is not None:
     # 2) Bases auxiliares
     df_pate, pacotes, cid, oci_nome = carregar_bases_auxiliares()
 
-    # 3) Competências disponíveis
-    competencias = calcular_competencias(df_mira)
-
-    competencia_str = None
-    if len(competencias) > 0:
-        competencia_str = st.sidebar.selectbox(
-            "Competência (filtra mês escolhido + mês anterior)",
-            options=competencias,
-            index=len(competencias) - 1,  # por padrão, última competência
-        )
-    else:
-        st.sidebar.warning("Não foi possível calcular competências (sem dt_execucao válida).")
+    # 3) Competência definida automaticamente pelo mês atual
+    hoje = datetime.today()
+    competencia_str = hoje.strftime("%m/%Y")
+    
+    st.sidebar.info(f"Competência considerada: {competencia_str} (mês atual da aplicação)")
 
     # 4) Processar MIRA -> OCI identificada
     with st.spinner("Processando solicitações e identificando OCIs..."):
