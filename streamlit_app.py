@@ -443,7 +443,7 @@ if uploaded_file is not None:
             cont_conduta.columns = ['conduta', 'quantidade']
             st.bar_chart(cont_conduta.set_index('conduta'))
     
-            # ===== NOVO GRÁFICO ALTAR =====
+            # ===== GRÁFICO AJUSTADO =====
             st.subheader("Quantidade de OCI identificadas")
     
             import altair as alt
@@ -458,26 +458,41 @@ if uploaded_file is not None:
                 .sort_values('quantidade', ascending=True)
             )
     
-            # Gráfico horizontal com barras menores
+            # Define altura dinâmica e barras mais finas
+            n_oci = len(cont_oci)
+            bar_size = 12  # espessura da barra
+            chart_height = max(200, n_oci * (bar_size + 6))
+    
             chart = (
                 alt.Chart(cont_oci)
-                .mark_bar(size=20)  # controla altura de cada barra
+                .mark_bar(size=bar_size)
                 .encode(
                     x=alt.X('quantidade:Q', title='Quantidade'),
-                    y=alt.Y('no_oci:N', title='OCI', sort='-x'),
+                    y=alt.Y(
+                        'no_oci:N',
+                        title='OCI',
+                        sort='-x',
+                        axis=alt.Axis(
+                            labelLimit=1000,   # evita cortar o texto
+                            labelAlign='left',
+                            labelPadding=4
+                        )
+                    ),
                     tooltip=['no_oci', 'quantidade']
                 )
                 .properties(
                     width=700,
-                    height=max(150, len(cont_oci) * 25)  # aumenta dinamicamente a altura
+                    height=chart_height
                 )
             )
     
-            st.altair_chart(chart, use_container_width=True)
-            # ==================================
+            # use_container_width=False para respeitar width/height definidos
+            st.altair_chart(chart, use_container_width=False)
+            # ============================
     
         else:
             st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
+
 
 else:
     st.info("👈 Carregue um arquivo MIRA em formato CSV na barra lateral para iniciar.")
