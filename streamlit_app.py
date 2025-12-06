@@ -427,7 +427,7 @@ if uploaded_file is not None:
 # Abas: Instruções / Tabela / Gráficos
 # (sempre aparecem, mesmo sem upload)
 # =====================================================
-tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📊 Tabela final", "📈 Gráficos"])
+tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📈 Gráficos", "📊 Tabela final"])
 
 with tab1:
     st.header("📘 Instruções para o arquivo MIRA")
@@ -501,24 +501,6 @@ with tab1:
     )
 
 with tab2:
-    st.subheader("Tabela de OCIs identificadas (após filtros)")
-
-    if df_filtrado is None:
-        st.info("👈 Carregue um arquivo MIRA na barra lateral para visualizar a tabela.")
-    else:
-        st.write(f"Total de registros filtrados: {len(df_filtrado)}")
-        st.dataframe(df_filtrado, use_container_width=True)
-
-        # Download do dataframe filtrado
-        csv_filtrado = df_filtrado.to_csv(index=False, sep=";")
-        st.download_button(
-            label="⬇️ Baixar tabela filtrada (CSV)",
-            data=csv_filtrado.encode("utf-8-sig"),
-            file_name="oci_identificada_filtrada.csv",
-            mime="text/csv"
-        )
-
-with tab3:
     st.subheader("Distribuição por conduta")
     if df_filtrado is None:
         st.info("👈 Carregue um arquivo MIRA na barra lateral para gerar os gráficos.")
@@ -567,3 +549,22 @@ with tab3:
 
         else:
             st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
+
+with tab3:
+    st.subheader("Tabela de OCIs identificadas (após filtros)")
+
+    if df_filtrado is None:
+        st.info("👈 Carregue um arquivo MIRA na barra lateral para visualizar a tabela.")
+    else:
+        st.write(f"Total de registros filtrados: {len(df_filtrado)}")
+        st.dataframe(df_filtrado, use_container_width=True)
+
+        # Download do dataframe filtrado
+        csv_filtrado = df_filtrado.to_csv(index=False, sep=";")
+        st.download_button(
+            label="⬇️ Baixar tabela filtrada (CSV)",
+            data=csv_filtrado.encode("utf-8-sig"),
+            file_name="oci_identificada_filtrada.csv",
+            mime="text/csv"
+        )
+
