@@ -489,7 +489,7 @@ if uploaded_file is not None:
                     x=alt.X("quantidade:Q", title="Quantidade"),
                     y=alt.Y(
                         "no_oci_wrapped:N",
-                        title="None",
+                        title=None,
                         sort="-x",
                         axis=alt.Axis(
                             labelLimit=10000,
