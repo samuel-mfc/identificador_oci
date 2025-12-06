@@ -334,7 +334,6 @@ st.title("🔍 Identificador de OCI a partir do Modelo de Informação de Regula
 
 st.sidebar.header("Configurações")
 
-
 # 2.1 Upload da MIRA
 uploaded_file = st.sidebar.file_uploader(
     "Carregue o arquivo MIRA (.csv ou .xls ou .xlsx)",
@@ -352,8 +351,17 @@ def carregar_bases_auxiliares():
     # cbo, idade_sexo podem ser usados depois
     return df_pate, pacotes, cid, oci_nome
 
+
+# Variáveis padrão (para podermos usar nas abas mesmo sem upload)
+df_filtrado = None
+oci_identificada = None
+
+# =========================================================
+# Processamento só se houver arquivo
+# =========================================================
 if uploaded_file is not None:
     # 1) Ler MIRA
+    # (mantive read_csv, se quiser realmente aceitar Excel podemos ajustar depois)
     df_mira = pd.read_csv(uploaded_file, dtype=str)
 
     # 2) Bases auxiliares
@@ -420,67 +428,89 @@ if uploaded_file is not None:
     elif cid_choice == "Incompatível":
         df_filtrado = df_filtrado[df_filtrado['cid_compativel'] == False]
 
-    # =====================================================
-    # Abas: Tabela / Gráficos
-    # =====================================================
-    tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📊 Tabela final", "📈 Gráficos"])
-    
-    with tab1:
-        st.header("📘 Instruções para o arquivo MIRA")
-    
-        st.markdown("""
-        Para que o processamento funcione corretamente, o arquivo MIRA enviado deve conter 
-        **pelo menos as seguintes colunas**, com **esses nomes exatos**:
-    
-        ### 🔑 Colunas obrigatórias
-    
-        - id_registro – identificador único do registro/linha.
-        - id_paciente – identificador único do paciente (CPF).
-        - co_procedimento – código SIGTAP do procedimento.
-        - dt_solicitacao – data da solicitação do procedimento.
-        - dt_execucao – data de execução do procedimento (pode estar em branco quando não realizado).
-        - cbo_executante – CBO do profissional executante (obrigatório para procedimentos do grupo 03 e 04).
-        - cid_motivo – CID informado como motivo/diagnóstico para o procedimento (pode estar em branco quando não houver esse dado).
-    
-        ### 📌 Observações importantes
-    
-        - A coluna **dt_execucao** é usada para identificar competência e determinar se o procedimento
-          foi realizado; ela deve estar em formato de data conhecido (`YYYY-MM-DD` ou `DD/MM/YYYY`).
-        - O arquivo deve estar no formato **CSV**, **XLS** ou **XLSX**.
-        - Caso use formato **CSV** os separadores aceitos são vírgula `,` ou ponto e vírgula `;` (o Streamlit detecta automaticamente).
-        - Colunas adicionais são aceitas e não atrapalham o processamento.
-    
-        ### ℹ️ Dica
-        Caso você tenha dúvidas sobre o conteúdo, abra seu arquivo antes de subir para verificar se
-        os nomes das colunas estão corretos.
-    
-        ### 📁 Estrutura recomendada do CSV
-        """)    
-        # Criar arquivo modelo em memória
-        modelo_df = pd.DataFrame(columns=[
-            "id_registro",
-            "id_paciente",
-            "co_procedimento",
-            "dt_solicitacao",
-            "dt_execucao",
-            "cbo_executante",
-            "cid_motivo"
-        ])
-        
-        buffer = io.BytesIO()
+# =====================================================
+# Abas: Instruções / Tabela / Gráficos
+# (sempre aparecem, mesmo sem upload)
+# =====================================================
+tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📊 Tabela final", "📈 Gráficos"])
+
+with tab1:
+    st.header("📘 Instruções para o arquivo MIRA")
+
+    st.markdown("""
+    Para que o processamento funcione corretamente, o arquivo MIRA enviado deve conter 
+    **pelo menos as seguintes colunas**, com **esses nomes exatos**:
+
+    ### 🔑 Colunas obrigatórias
+
+    - `id_registro` – identificador único do registro/linha.
+    - `id_paciente` – identificador único do paciente (CPF).
+    - `co_procedimento` – código SIGTAP do procedimento.
+    - `dt_solicitacao` – data da solicitação do procedimento.
+    - `dt_execucao` – data de execução do procedimento (pode estar em branco quando não realizado).
+    - `cbo_executante` – CBO do profissional executante (obrigatório para procedimentos do grupo 03 e 04).
+    - `cid_motivo` – CID informado como motivo/diagnóstico para o procedimento (pode estar em branco quando não houver esse dado).
+
+    ### 📌 Observações importantes
+
+    - A coluna **dt_execucao** é usada para identificar competência e determinar se o procedimento
+      foi realizado; ela deve estar em formato de data conhecido (`YYYY-MM-DD` ou `DD/MM/YYYY`).
+    - O arquivo deve estar no formato **CSV**, **XLS** ou **XLSX**.
+    - Caso use formato **CSV**, os separadores aceitos são vírgula `,` ou ponto e vírgula `;` (o Streamlit detecta automaticamente).
+    - Colunas adicionais são aceitas e não atrapalham o processamento.
+
+    ### 📁 Estrutura recomendada
+
+    ```text
+    id_registro | id_paciente | co_procedimento | dt_solicitacao | dt_execucao | cbo_executante | cid_motivo
+    ```
+
+    ### ℹ️ Dica
+    Caso você tenha dúvidas sobre o conteúdo, abra seu arquivo antes de subir para verificar se
+    os nomes das colunas estão corretos.
+    """)
+
+    # -------------------------------
+    # Botão para baixar modelo MIRA
+    # -------------------------------
+    modelo_df = pd.DataFrame(columns=[
+        "id_registro",
+        "id_paciente",
+        "co_procedimento",
+        "dt_solicitacao",
+        "dt_execucao",
+        "cbo_executante",
+        "cid_motivo"
+    ])
+
+    buffer = io.BytesIO()
+    try:
+        # tenta gerar XLSX
         modelo_df.to_excel(buffer, index=False, sheet_name="Modelo_MIRA")
         buffer.seek(0)
-        
-        st.download_button(
-            label="📥 Baixar arquivo modelo (.xlsx)",
-            data=buffer,
-            file_name="modelo_mira.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        data_bytes = buffer.getvalue()
+        mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        file_name = "modelo_mira.xlsx"
+    except Exception as e:
+        # fallback para CSV se der erro (por exemplo, falta de engine Excel)
+        st.warning(f"Não foi possível gerar o arquivo .xlsx (detalhes: {e}). Será disponibilizado um modelo em CSV.")
+        data_bytes = modelo_df.to_csv(index=False).encode("utf-8-sig")
+        mime_type = "text/csv"
+        file_name = "modelo_mira.csv"
 
-    with tab2:
-        st.subheader("Tabela de OCIs identificadas (após filtros)")
+    st.download_button(
+        label="📥 Baixar arquivo modelo (MIRA)",
+        data=data_bytes,
+        file_name=file_name,
+        mime=mime_type
+    )
 
+with tab2:
+    st.subheader("Tabela de OCIs identificadas (após filtros)")
+
+    if df_filtrado is None:
+        st.info("👈 Carregue um arquivo MIRA na barra lateral para visualizar a tabela.")
+    else:
         st.write(f"Total de registros filtrados: {len(df_filtrado)}")
         st.dataframe(df_filtrado, use_container_width=True)
 
@@ -493,18 +523,21 @@ if uploaded_file is not None:
             mime="text/csv"
         )
 
-    with tab3:
-        st.subheader("Distribuição por conduta")
+with tab3:
+    st.subheader("Distribuição por conduta")
+    if df_filtrado is None:
+        st.info("👈 Carregue um arquivo MIRA na barra lateral para gerar os gráficos.")
+    else:
         if not df_filtrado.empty:
             cont_conduta = df_filtrado['conduta'].value_counts().reset_index()
             cont_conduta.columns = ['conduta', 'quantidade']
             st.bar_chart(cont_conduta.set_index('conduta'))
-    
+
             # ==========================================================
-            # NOVO GRÁFICO: Quantidade de OCI identificadas (horizontal)
+            # GRÁFICO: Quantidade de OCI identificadas (horizontal)
             # ==========================================================
             st.subheader("Quantidade de OCI identificadas")
-    
+
             # Contagem baseada em valores únicos de id_oci_paciente
             cont_oci = (
                 df_filtrado.drop_duplicates(subset=['id_oci_paciente'])
@@ -513,9 +546,7 @@ if uploaded_file is not None:
                 .reset_index()
                 .sort_values(by='id_oci_paciente', ascending=True)
             )
-    
-            # Gráfico de barras horizontais (Plotly)
-    
+
             fig = px.bar(
                 cont_oci,
                 x="id_oci_paciente",
@@ -526,21 +557,19 @@ if uploaded_file is not None:
                     "no_oci": "OCI"
                 }
             )
-            
-            # 🔹 Adiciona os valores dentro das barras
+
             fig.update_traces(
                 text=cont_oci["id_oci_paciente"],
-                textposition="outside"   # use "inside" se quiser o texto dentro
+                textposition="outside"
             )
-            
-            # 🔹 Ajustes visuais
+
             fig.update_layout(
                 height=600,
                 margin=dict(l=200),
             )
-            
+
             st.plotly_chart(fig, use_container_width=True)
-    
+
         else:
             st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
 
