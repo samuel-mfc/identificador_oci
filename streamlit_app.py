@@ -504,52 +504,73 @@ with tab2:
     st.subheader("Painel")
 
     if df_filtrado is None:
-        st.info("👈 Carregue um arquivo MIRA na barra lateral para gerar os gráficos.")
+        st.info("👈 Carregue um arquivo MIRA na barra lateral para gerar o painel.")
     else:
         if not df_filtrado.empty:
             import plotly.express as px
 
-            # ---------------------------------------------
-            # Gráfico 1: Distribuição por conduta (horizontal)
-            # Contagem = número de linhas (registros)
-            # ---------------------------------------------
-            st.markdown("#### Distribuição por conduta")
+            # ==========================================
+            # KPIs (substituem o gráfico 1)
+            # ==========================================
+            st.markdown("#### Indicadores gerais")
+
+            total_registros = len(df_filtrado)
+            total_oci_unicas = df_filtrado["id_oci_paciente"].nunique()
+            total_pacientes = df_filtrado["id_paciente"].nunique() if "id_paciente" in df_filtrado.columns else None
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.metric(
+                    label="Registros (linhas) filtrados",
+                    value=f"{total_registros:,}".replace(",", ".")
+                )
+
+            with col2:
+                st.metric(
+                    label="OCIs únicas identificadas",
+                    value=f"{total_oci_unicas:,}".replace(",", ".")
+                )
+
+            with col3:
+                if total_pacientes is not None:
+                    st.metric(
+                        label="Pacientes únicos",
+                        value=f"{total_pacientes:,}".replace(",", ".")
+                    )
+                else:
+                    st.metric(
+                        label="Pacientes únicos",
+                        value="--"
+                    )
+
+            # KPIs por conduta
+            st.markdown("#### Distribuição por conduta (KPI)")
 
             cont_conduta = (
                 df_filtrado
                 .groupby("conduta")
                 .size()
                 .reset_index(name="quantidade")
-                .sort_values("quantidade", ascending=True)
+                .sort_values("quantidade", ascending=False)
             )
 
-            fig1 = px.bar(
-                cont_conduta,
-                x="quantidade",
-                y="conduta",
-                orientation="h",
-                labels={
-                    "quantidade": "Quantidade de registros",
-                    "conduta": "Conduta"
-                }
-            )
+            # Exibe as condutas em blocos de até 3 por linha
+            for i in range(0, len(cont_conduta), 3):
+                cols = st.columns(3)
+                subset = cont_conduta.iloc[i:i+3]
+                for col, (_, row) in zip(cols, subset.iterrows()):
+                    with col:
+                        st.metric(
+                            label=row["conduta"],
+                            value=f"{row['quantidade']:,}".replace(",", ".")
+                        )
 
-            fig1.update_traces(
-                text=cont_conduta["quantidade"],
-                textposition="outside"
-            )
+            st.markdown("---")
 
-            fig1.update_layout(
-                height=400,
-                margin=dict(l=200)  # espaço para mostrar o texto completo do eixo Y
-            )
-
-            st.plotly_chart(fig1, use_container_width=True)
-
-            # ---------------------------------------------
+            # ==========================================
             # Gráfico 2: Quantidade de OCI identificadas (horizontal)
-            # Contagem = número de id_oci_paciente únicos
-            # ---------------------------------------------
+            # ==========================================
             st.markdown("#### Quantidade de OCI identificadas")
 
             cont_oci = (
@@ -584,7 +605,7 @@ with tab2:
             st.plotly_chart(fig2, use_container_width=True)
 
         else:
-            st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
+            st.info("Nenhum dado após aplicar os filtros para gerar o painel.")
 
 with tab3:
     st.subheader("Tabela de OCIs identificadas (após filtros)")
