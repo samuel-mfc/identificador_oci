@@ -522,30 +522,30 @@ with tab2:
 
             with col1:
                 st.metric(
-                    label="Registros (linhas) filtrados",
+                    label="Procedimentos filtrados",
                     value=f"{total_registros:,}".replace(",", ".")
                 )
 
             with col2:
                 st.metric(
-                    label="OCIs únicas identificadas",
+                    label="OCI identificadas",
                     value=f"{total_oci_unicas:,}".replace(",", ".")
                 )
 
             with col3:
                 if total_pacientes is not None:
                     st.metric(
-                        label="Pacientes únicos",
+                        label="Usuários identificados",
                         value=f"{total_pacientes:,}".replace(",", ".")
                     )
                 else:
                     st.metric(
-                        label="Pacientes únicos",
+                        label="Usuários identificados",
                         value="--"
                     )
 
             # KPIs por conduta
-            st.markdown("#### Distribuição por conduta (KPI)")
+            st.markdown("#### Condutas a serem tomadas")
 
             cont_conduta = (
                 df_filtrado
@@ -555,10 +555,10 @@ with tab2:
                 .sort_values("quantidade", ascending=False)
             )
 
-            # Exibe as condutas em blocos de até 3 por linha
-            for i in range(0, len(cont_conduta), 3):
-                cols = st.columns(3)
-                subset = cont_conduta.iloc[i:i+3]
+            # Exibe as condutas em blocos de até 4 por linha
+            for i in range(0, len(cont_conduta), 4):
+                cols = st.columns(4)
+                subset = cont_conduta.iloc[i:i+4]
                 for col, (_, row) in zip(cols, subset.iterrows()):
                     with col:
                         st.metric(
