@@ -324,254 +324,251 @@ def calcular_competencias(df_mira):
     return competencias
 
 
-    # =========================================================
-    # 2. Interface Streamlit
-    # =========================================================
-    
-    st.set_page_config(page_title="Identificador de OCI", layout="wide")
-    
-    st.title("🔍 Identificador de OCI a partir do Modelo de Informação de Regulação Assistencial (MIRA)")
-    
-    st.sidebar.header("Configurações")
-    
-    # 2.1 Upload da MIRA
-    uploaded_file = st.sidebar.file_uploader(
-        "Carregue o arquivo MIRA (.csv ou .xls ou .xlsx)",
-        type=["csv", "xlsx", "xls"]
-    )
-    
-    # Carrega bases auxiliares fixas da pasta bases_auxiliares
-    @st.cache_data
-    def carregar_bases_auxiliares():
-        base_path = "bases_auxiliares"
-        df_pate = pd.read_csv(os.path.join(base_path, "df_pate.csv"), dtype=str)
-        pacotes = pd.read_csv(os.path.join(base_path, "pacotes.csv"), dtype=str)
-        cid = pd.read_csv(os.path.join(base_path, "cid.csv"), dtype=str)
-        oci_nome = pd.read_csv(os.path.join(base_path, "oci_nome.csv"), dtype=str)
-        # cbo, idade_sexo podem ser usados depois
-        return df_pate, pacotes, cid, oci_nome
-    
-    
-    # Variáveis padrão (para podermos usar nas abas mesmo sem upload)
-    df_filtrado = None
-    oci_identificada = None
-    
-    # =========================================================
-    # Processamento só se houver arquivo
-    # =========================================================
-    if uploaded_file is not None:
-        # 1) Ler MIRA
-        # (mantive read_csv, se quiser realmente aceitar Excel podemos ajustar depois)
-        df_mira = pd.read_csv(uploaded_file, dtype=str)
-    
-        # 2) Bases auxiliares
-        df_pate, pacotes, cid, oci_nome = carregar_bases_auxiliares()
-    
-        # 3) Competências disponíveis
-        competencias = calcular_competencias(df_mira)
-    
-        competencia_str = None
-        if len(competencias) > 0:
-            competencia_str = st.sidebar.selectbox(
-                "Competência (filtra mês escolhido + mês anterior)",
-                options=competencias,
-                index=len(competencias) - 1,  # por padrão, última competência
-            )
-        else:
-            st.sidebar.warning("Não foi possível calcular competências (sem dt_execucao válida).")
-    
-        # 4) Processar MIRA -> OCI identificada
-        with st.spinner("Processando solicitações e identificando OCIs..."):
-            oci_identificada = processar_mira(
-                df_mira,
-                df_pate=df_pate,
-                cid=cid,
-                oci_nome=oci_nome,
-                pacotes=pacotes,
-                competencia_str=competencia_str
-            )
-    
-        st.success(f"Processamento concluído! {len(oci_identificada)} registros de OCI identificados.")
-    
-        # =====================================================
-        # Filtros principais
-        # =====================================================
-        st.sidebar.subheader("Filtros principais")
-    
-        condutas = sorted(oci_identificada['conduta'].dropna().unique().tolist())
-        conduta_sel = st.sidebar.multiselect(
-            "Conduta",
-            options=condutas,
-            default=condutas
-        )
-    
-        oci_nomes = sorted(oci_identificada['no_oci'].dropna().unique().tolist())
-        oci_sel = st.sidebar.multiselect(
-            "Nome da OCI",
-            options=oci_nomes,
-            default=oci_nomes[:20] if len(oci_nomes) > 20 else oci_nomes
-        )
-    
-        cid_options = ["Todos", "Compatível", "Incompatível"]
-        cid_choice = st.sidebar.radio("Compatibilidade CID", cid_options, index=0)
-    
-        df_filtrado = oci_identificada.copy()
-    
-        if conduta_sel:
-            df_filtrado = df_filtrado[df_filtrado['conduta'].isin(conduta_sel)]
-    
-        if oci_sel:
-            df_filtrado = df_filtrado[df_filtrado['no_oci'].isin(oci_sel)]
-    
-        if cid_choice == "Compatível":
-            df_filtrado = df_filtrado[df_filtrado['cid_compativel'] == True]
-        elif cid_choice == "Incompatível":
-            df_filtrado = df_filtrado[df_filtrado['cid_compativel'] == False]
-    
-    # =====================================================
-    # Abas: Instruções / Tabela / Gráficos
-    # (sempre aparecem, mesmo sem upload)
-    # =====================================================
-    tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📊 Tabela final", "📈 Gráficos"])
-    
-    with tab1:
-        st.header("📘 Instruções para o arquivo MIRA")
-    
-        st.markdown("""
-        Para que o processamento funcione corretamente, o arquivo MIRA enviado deve conter 
-        **pelo menos as seguintes colunas**, com **esses nomes exatos**:
-    
-        ### 🔑 Colunas obrigatórias
-    
-        - `id_registro` – identificador único do registro/linha.
-        - `id_paciente` – identificador único do paciente (CPF).
-        - `co_procedimento` – código SIGTAP do procedimento.
-        - `dt_solicitacao` – data da solicitação do procedimento.
-        - `dt_execucao` – data de execução do procedimento (pode estar em branco quando não realizado).
-        - `cbo_executante` – CBO do profissional executante (obrigatório para procedimentos do grupo 03 e 04).
-        - `cid_motivo` – CID informado como motivo/diagnóstico para o procedimento (pode estar em branco quando não houver esse dado).
-    
-        ### 📌 Observações importantes
-    
-        - A coluna **dt_execucao** é usada para identificar competência e determinar se o procedimento
-          foi realizado; ela deve estar em formato de data conhecido (`YYYY-MM-DD` ou `DD/MM/YYYY`).
-        - O arquivo deve estar no formato **CSV**, **XLS** ou **XLSX**.
-        - Caso use formato **CSV**, os separadores aceitos são vírgula `,` ou ponto e vírgula `;` (o Streamlit detecta automaticamente).
-        - Colunas adicionais são aceitas e não atrapalham o processamento.
-    
-        ### 📁 Estrutura recomendada
-    
-        ```text
-        id_registro | id_paciente | co_procedimento | dt_solicitacao | dt_execucao | cbo_executante | cid_motivo
-        ```
-    
-        ### ℹ️ Dica
-        Caso você tenha dúvidas sobre o conteúdo, abra seu arquivo antes de subir para verificar se
-        os nomes das colunas estão corretos.
-        """)
-    
-        # -------------------------------
-        # Botão para baixar modelo MIRA
-        # -------------------------------
-        modelo_df = pd.DataFrame(columns=[
-            "id_registro",
-            "id_paciente",
-            "co_procedimento",
-            "dt_solicitacao",
-            "dt_execucao",
-            "cbo_executante",
-            "cid_motivo"
-        ])
-    
-        buffer = io.BytesIO()
-        try:
-            # tenta gerar XLSX
-            modelo_df.to_excel(buffer, index=False, sheet_name="Modelo_MIRA")
-            buffer.seek(0)
-            data_bytes = buffer.getvalue()
-            mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            file_name = "modelo_mira.xlsx"
-        except Exception as e:
-            # fallback para CSV se der erro (por exemplo, falta de engine Excel)
-            st.warning(f"Não foi possível gerar o arquivo .xlsx (detalhes: {e}). Será disponibilizado um modelo em CSV.")
-            data_bytes = modelo_df.to_csv(index=False).encode("utf-8-sig")
-            mime_type = "text/csv"
-            file_name = "modelo_mira.csv"
-    
-        st.download_button(
-            label="📥 Baixar arquivo modelo (MIRA)",
-            data=data_bytes,
-            file_name=file_name,
-            mime=mime_type
-        )
-    
-    with tab2:
-        st.subheader("Tabela de OCIs identificadas (após filtros)")
-    
-        if df_filtrado is None:
-            st.info("👈 Carregue um arquivo MIRA na barra lateral para visualizar a tabela.")
-        else:
-            st.write(f"Total de registros filtrados: {len(df_filtrado)}")
-            st.dataframe(df_filtrado, use_container_width=True)
-    
-            # Download do dataframe filtrado
-            csv_filtrado = df_filtrado.to_csv(index=False, sep=";")
-            st.download_button(
-                label="⬇️ Baixar tabela filtrada (CSV)",
-                data=csv_filtrado.encode("utf-8-sig"),
-                file_name="oci_identificada_filtrada.csv",
-                mime="text/csv"
-            )
-    
-    with tab3:
-        st.subheader("Distribuição por conduta")
-        if df_filtrado is None:
-            st.info("👈 Carregue um arquivo MIRA na barra lateral para gerar os gráficos.")
-        else:
-            if not df_filtrado.empty:
-                cont_conduta = df_filtrado['conduta'].value_counts().reset_index()
-                cont_conduta.columns = ['conduta', 'quantidade']
-                st.bar_chart(cont_conduta.set_index('conduta'))
-    
-                # ==========================================================
-                # GRÁFICO: Quantidade de OCI identificadas (horizontal)
-                # ==========================================================
-                st.subheader("Quantidade de OCI identificadas")
-    
-                # Contagem baseada em valores únicos de id_oci_paciente
-                cont_oci = (
-                    df_filtrado.drop_duplicates(subset=['id_oci_paciente'])
-                    .groupby('no_oci')['id_oci_paciente']
-                    .count()
-                    .reset_index()
-                    .sort_values(by='id_oci_paciente', ascending=True)
-                )
-    
-                fig = px.bar(
-                    cont_oci,
-                    x="id_oci_paciente",
-                    y="no_oci",
-                    orientation="h",
-                    labels={
-                        "id_oci_paciente": "Quantidade",
-                        "no_oci": "OCI"
-                    }
-                )
-    
-                fig.update_traces(
-                    text=cont_oci["id_oci_paciente"],
-                    textposition="outside"
-                )
-    
-                fig.update_layout(
-                    height=600,
-                    margin=dict(l=200),
-                )
-    
-                st.plotly_chart(fig, use_container_width=True)
-    
-            else:
-                st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
+# =========================================================
+# 2. Interface Streamlit
+# =========================================================
 
-else:
-    st.info("👈 Carregue um arquivo MIRA em formato CSV, XLS ou XLSX na barra lateral para iniciar.")
+st.set_page_config(page_title="Identificador de OCI", layout="wide")
+
+st.title("🔍 Identificador de OCI a partir do Modelo de Informação de Regulação Assistencial (MIRA)")
+
+st.sidebar.header("Configurações")
+
+# 2.1 Upload da MIRA
+uploaded_file = st.sidebar.file_uploader(
+    "Carregue o arquivo MIRA (.csv ou .xls ou .xlsx)",
+    type=["csv", "xlsx", "xls"]
+)
+
+# Carrega bases auxiliares fixas da pasta bases_auxiliares
+@st.cache_data
+def carregar_bases_auxiliares():
+    base_path = "bases_auxiliares"
+    df_pate = pd.read_csv(os.path.join(base_path, "df_pate.csv"), dtype=str)
+    pacotes = pd.read_csv(os.path.join(base_path, "pacotes.csv"), dtype=str)
+    cid = pd.read_csv(os.path.join(base_path, "cid.csv"), dtype=str)
+    oci_nome = pd.read_csv(os.path.join(base_path, "oci_nome.csv"), dtype=str)
+    # cbo, idade_sexo podem ser usados depois
+    return df_pate, pacotes, cid, oci_nome
+
+
+# Variáveis padrão (para podermos usar nas abas mesmo sem upload)
+df_filtrado = None
+oci_identificada = None
+
+# =========================================================
+# Processamento só se houver arquivo
+# =========================================================
+if uploaded_file is not None:
+    # 1) Ler MIRA
+    # (mantive read_csv, se quiser realmente aceitar Excel podemos ajustar depois)
+    df_mira = pd.read_csv(uploaded_file, dtype=str)
+
+    # 2) Bases auxiliares
+    df_pate, pacotes, cid, oci_nome = carregar_bases_auxiliares()
+
+    # 3) Competências disponíveis
+    competencias = calcular_competencias(df_mira)
+
+    competencia_str = None
+    if len(competencias) > 0:
+        competencia_str = st.sidebar.selectbox(
+            "Competência (filtra mês escolhido + mês anterior)",
+            options=competencias,
+            index=len(competencias) - 1,  # por padrão, última competência
+        )
+    else:
+        st.sidebar.warning("Não foi possível calcular competências (sem dt_execucao válida).")
+
+    # 4) Processar MIRA -> OCI identificada
+    with st.spinner("Processando solicitações e identificando OCIs..."):
+        oci_identificada = processar_mira(
+            df_mira,
+            df_pate=df_pate,
+            cid=cid,
+            oci_nome=oci_nome,
+            pacotes=pacotes,
+            competencia_str=competencia_str
+        )
+
+    st.success(f"Processamento concluído! {len(oci_identificada)} registros de OCI identificados.")
+
+    # =====================================================
+    # Filtros principais
+    # =====================================================
+    st.sidebar.subheader("Filtros principais")
+
+    condutas = sorted(oci_identificada['conduta'].dropna().unique().tolist())
+    conduta_sel = st.sidebar.multiselect(
+        "Conduta",
+        options=condutas,
+        default=condutas
+    )
+
+    oci_nomes = sorted(oci_identificada['no_oci'].dropna().unique().tolist())
+    oci_sel = st.sidebar.multiselect(
+        "Nome da OCI",
+        options=oci_nomes,
+        default=oci_nomes[:20] if len(oci_nomes) > 20 else oci_nomes
+    )
+
+    cid_options = ["Todos", "Compatível", "Incompatível"]
+    cid_choice = st.sidebar.radio("Compatibilidade CID", cid_options, index=0)
+
+    df_filtrado = oci_identificada.copy()
+
+    if conduta_sel:
+        df_filtrado = df_filtrado[df_filtrado['conduta'].isin(conduta_sel)]
+
+    if oci_sel:
+        df_filtrado = df_filtrado[df_filtrado['no_oci'].isin(oci_sel)]
+
+    if cid_choice == "Compatível":
+        df_filtrado = df_filtrado[df_filtrado['cid_compativel'] == True]
+    elif cid_choice == "Incompatível":
+        df_filtrado = df_filtrado[df_filtrado['cid_compativel'] == False]
+
+# =====================================================
+# Abas: Instruções / Tabela / Gráficos
+# (sempre aparecem, mesmo sem upload)
+# =====================================================
+tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📊 Tabela final", "📈 Gráficos"])
+
+with tab1:
+    st.header("📘 Instruções para o arquivo MIRA")
+
+    st.markdown("""
+    Para que o processamento funcione corretamente, o arquivo MIRA enviado deve conter 
+    **pelo menos as seguintes colunas**, com **esses nomes exatos**:
+
+    ### 🔑 Colunas obrigatórias
+
+    - `id_registro` – identificador único do registro/linha.
+    - `id_paciente` – identificador único do paciente (CPF).
+    - `co_procedimento` – código SIGTAP do procedimento.
+    - `dt_solicitacao` – data da solicitação do procedimento.
+    - `dt_execucao` – data de execução do procedimento (pode estar em branco quando não realizado).
+    - `cbo_executante` – CBO do profissional executante (obrigatório para procedimentos do grupo 03 e 04).
+    - `cid_motivo` – CID informado como motivo/diagnóstico para o procedimento (pode estar em branco quando não houver esse dado).
+
+    ### 📌 Observações importantes
+
+    - A coluna **dt_execucao** é usada para identificar competência e determinar se o procedimento
+      foi realizado; ela deve estar em formato de data conhecido (`YYYY-MM-DD` ou `DD/MM/YYYY`).
+    - O arquivo deve estar no formato **CSV**, **XLS** ou **XLSX**.
+    - Caso use formato **CSV**, os separadores aceitos são vírgula `,` ou ponto e vírgula `;` (o Streamlit detecta automaticamente).
+    - Colunas adicionais são aceitas e não atrapalham o processamento.
+
+    ### 📁 Estrutura recomendada
+
+    ```text
+    id_registro | id_paciente | co_procedimento | dt_solicitacao | dt_execucao | cbo_executante | cid_motivo
+    ```
+
+    ### ℹ️ Dica
+    Caso você tenha dúvidas sobre o conteúdo, abra seu arquivo antes de subir para verificar se
+    os nomes das colunas estão corretos.
+    """)
+
+    # -------------------------------
+    # Botão para baixar modelo MIRA
+    # -------------------------------
+    modelo_df = pd.DataFrame(columns=[
+        "id_registro",
+        "id_paciente",
+        "co_procedimento",
+        "dt_solicitacao",
+        "dt_execucao",
+        "cbo_executante",
+        "cid_motivo"
+    ])
+
+    buffer = io.BytesIO()
+    try:
+        # tenta gerar XLSX
+        modelo_df.to_excel(buffer, index=False, sheet_name="Modelo_MIRA")
+        buffer.seek(0)
+        data_bytes = buffer.getvalue()
+        mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        file_name = "modelo_mira.xlsx"
+    except Exception as e:
+        # fallback para CSV se der erro (por exemplo, falta de engine Excel)
+        st.warning(f"Não foi possível gerar o arquivo .xlsx (detalhes: {e}). Será disponibilizado um modelo em CSV.")
+        data_bytes = modelo_df.to_csv(index=False).encode("utf-8-sig")
+        mime_type = "text/csv"
+        file_name = "modelo_mira.csv"
+
+    st.download_button(
+        label="📥 Baixar arquivo modelo (MIRA)",
+        data=data_bytes,
+        file_name=file_name,
+        mime=mime_type
+    )
+
+with tab2:
+    st.subheader("Tabela de OCIs identificadas (após filtros)")
+
+    if df_filtrado is None:
+        st.info("👈 Carregue um arquivo MIRA na barra lateral para visualizar a tabela.")
+    else:
+        st.write(f"Total de registros filtrados: {len(df_filtrado)}")
+        st.dataframe(df_filtrado, use_container_width=True)
+
+        # Download do dataframe filtrado
+        csv_filtrado = df_filtrado.to_csv(index=False, sep=";")
+        st.download_button(
+            label="⬇️ Baixar tabela filtrada (CSV)",
+            data=csv_filtrado.encode("utf-8-sig"),
+            file_name="oci_identificada_filtrada.csv",
+            mime="text/csv"
+        )
+
+with tab3:
+    st.subheader("Distribuição por conduta")
+    if df_filtrado is None:
+        st.info("👈 Carregue um arquivo MIRA na barra lateral para gerar os gráficos.")
+    else:
+        if not df_filtrado.empty:
+            cont_conduta = df_filtrado['conduta'].value_counts().reset_index()
+            cont_conduta.columns = ['conduta', 'quantidade']
+            st.bar_chart(cont_conduta.set_index('conduta'))
+
+            # ==========================================================
+            # GRÁFICO: Quantidade de OCI identificadas (horizontal)
+            # ==========================================================
+            st.subheader("Quantidade de OCI identificadas")
+
+            # Contagem baseada em valores únicos de id_oci_paciente
+            cont_oci = (
+                df_filtrado.drop_duplicates(subset=['id_oci_paciente'])
+                .groupby('no_oci')['id_oci_paciente']
+                .count()
+                .reset_index()
+                .sort_values(by='id_oci_paciente', ascending=True)
+            )
+
+            fig = px.bar(
+                cont_oci,
+                x="id_oci_paciente",
+                y="no_oci",
+                orientation="h",
+                labels={
+                    "id_oci_paciente": "Quantidade",
+                    "no_oci": "OCI"
+                }
+            )
+
+            fig.update_traces(
+                text=cont_oci["id_oci_paciente"],
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                height=600,
+                margin=dict(l=200),
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
+        else:
+            st.info("Nenhum dado após aplicar os filtros para gerar gráficos.")
