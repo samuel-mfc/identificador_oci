@@ -364,7 +364,20 @@ oci_identificada = None
 if uploaded_file is not None:
     # 1) Ler MIRA
     # (mantive read_csv, se quiser realmente aceitar Excel podemos ajustar depois)
-    df_mira = pd.read_csv(uploaded_file, dtype=str)
+    nome_arquivo = uploaded_file.name.lower()
+    
+    if nome_arquivo.endswith(".csv"):
+        try:
+            df_mira = pd.read_csv(uploaded_file, dtype=str, encoding="utf-8")
+        except UnicodeDecodeError:
+            df_mira = pd.read_csv(uploaded_file, dtype=str, encoding="latin1")
+    
+    elif nome_arquivo.endswith((".xlsx", ".xls")):
+        df_mira = pd.read_excel(uploaded_file, dtype=str)
+    else:
+        st.error("Formato de arquivo não reconhecido. Envie CSV ou XLSX.")
+        st.stop()
+
 
     # 2) Bases auxiliares
     df_pate, pacotes, cid, oci_nome = carregar_bases_auxiliares()
