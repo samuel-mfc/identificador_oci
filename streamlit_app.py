@@ -298,6 +298,60 @@ def processar_mira(df_mira, df_pate, cid, oci_nome, pacotes, competencia_str=Non
         ],
         default='indefinido'
     )
+    
+    # ============================================
+    # Coluna 'retorno'
+    # ============================================
+
+    # Garante que dt_execucao está em datetime
+    oci_identificada['dt_execucao'] = pd.to_datetime(
+        oci_identificada['dt_execucao'],
+        errors='coerce'
+    )
+
+    # 1) Para cada id_oci_paciente, verificar se TODAS as linhas têm dt_execucao preenchida
+    todas_executadas = (
+        oci_identificada
+          .groupby('id_oci_paciente')['dt_execucao']
+          .transform(lambda s: s.notna().all())
+    )
+
+    # 2) Pegar, para cada id_oci_paciente, a LINHA com dt_execucao mais recente
+    #    (ignorando linhas sem dt_execucao)
+    df_ult = (
+        oci_identificada
+          .dropna(subset=['dt_execucao'])               # só quem tem execução
+          .sort_values('dt_execucao')                   # ordena por data
+          .groupby('id_oci_paciente')
+          .tail(1)[['id_oci_paciente', 'co_procedimento']]
+    )
+
+    # 3) Verificar se o co_procedimento dessa linha mais recente começa com "0301010"
+    df_ult['ultimo_0301010'] = (
+        df_ult['co_procedimento']
+          .astype(str)
+          .str.startswith('0301010')
+    )
+
+    # 4) Transformar em uma série indexada por id_oci_paciente
+    proc_ultimo = df_ult.set_index('id_oci_paciente')['ultimo_0301010']
+
+    # 5) Espalhar essa condição para todas as linhas do respectivo id_oci_paciente
+    cond_ultimo_0301010 = (
+        oci_identificada['id_oci_paciente']
+          .map(proc_ultimo)
+          .fillna(False)   # se não tiver última execução válida, considera False
+    )
+
+    # 6) Regra final convertida para texto
+    #    True se:
+    #      - última execução é 0301010*  E
+    #      - todas as linhas do id_oci_paciente têm dt_execucao preenchida
+    #    Caso contrário, False
+    oci_identificada['retorno'] = (
+        (todas_executadas & cond_ultimo_0301010)
+        .map({True: "Retorno realizado", False: "Retorno não realizado"})
+    )
 
     # Ordena por paciente
     oci_identificada.sort_values(by='id_paciente', inplace=True)
