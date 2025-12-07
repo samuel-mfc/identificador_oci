@@ -7,7 +7,6 @@ import streamlit as st
 import plotly.express as px
 import io
 from datetime import datetime
-import csv
 
 
 
@@ -363,22 +362,21 @@ oci_identificada = None
 # Processamento só se houver arquivo
 # =========================================================
 if uploaded_file is not None:
-    # Detecta automaticamente o separador do CSV
-    try:
-        sniffer = csv.Sniffer()
-        dialect = sniffer.sniff(uploaded_file.getvalue().decode('utf-8'))
-        uploaded_file.seek(0)
-        df_mira = pd.read_csv(uploaded_file, delimiter=dialect.delimiter, dtype=str)
-
-    except csv.Error:
-        # Se não for CSV, tenta ler como Excel
-        uploaded_file.seek(0)
+    # 1) Ler MIRA
+    # (mantive read_csv, se quiser realmente aceitar Excel podemos ajustar depois)
+    nome_arquivo = uploaded_file.name.lower()
+    
+    if nome_arquivo.endswith(".csv"):
+        try:
+            df_mira = pd.read_csv(uploaded_file, dtype=str, encoding="utf-8")
+        except UnicodeDecodeError:
+            df_mira = pd.read_csv(uploaded_file, dtype=str, encoding="latin1")
+    
+    elif nome_arquivo.endswith((".xlsx", ".xls")):
         df_mira = pd.read_excel(uploaded_file, dtype=str)
-
-    st.write("Colunas carregadas:", df_mira.columns.tolist())
-else:
-    st.error("Formato de arquivo não reconhecido. Envie CSV ou XLSX.")
-    st.stop()
+    else:
+        st.error("Formato de arquivo não reconhecido. Envie CSV ou XLSX.")
+        st.stop()
 
 
     # 2) Bases auxiliares
@@ -643,5 +641,4 @@ with tab3:
             file_name="oci_identificada_filtrada.csv",
             mime="text/csv"
         )
-
 
