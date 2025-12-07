@@ -635,7 +635,7 @@ with tab2:
                     )
             with col4:
                 st.metric(
-                    label="Retorno não realizado (por OCI)",
+                    label="Retornos a realizar",
                     value=f"{total_retornos_nao_realizados:,}".replace(",", ".")
                 )
 
