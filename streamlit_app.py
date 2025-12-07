@@ -7,6 +7,7 @@ import streamlit as st
 import plotly.express as px
 import io
 from datetime import datetime
+import csv
 
 
 
@@ -325,6 +326,24 @@ def calcular_competencias(df_mira):
     competencias = meses.strftime('%m/%Y').tolist()
     return competencias
 
+def ler_csv_com_separador_automatico(uploaded_file):
+    # Lê alguns bytes para que o Sniffer avalie o padrão do arquivo
+    amostra = uploaded_file.read(2048).decode("utf-8", errors="ignore")
+
+    # Reinicia o ponteiro do arquivo (muito importante)
+    uploaded_file.seek(0)
+
+    try:
+        dialect = csv.Sniffer().sniff(amostra, delimiters=[",", ";", "|", "\t"])
+        sep = dialect.delimiter
+    except csv.Error:
+        # Se não detectar nada, assume vírgula por padrão
+        sep = ","
+
+    # Agora lemos o CSV com o separador detectado
+    df = pd.read_csv(uploaded_file, dtype=str, sep=sep)
+    return df
+
 
 # =========================================================
 # 2. Interface Streamlit
@@ -368,7 +387,7 @@ if uploaded_file is not None:
     
     if nome_arquivo.endswith(".csv"):
         try:
-            df_mira = pd.read_csv(uploaded_file, dtype=str, encoding="utf-8")
+            df_mira = ler_csv_com_separador_automatico(uploaded_file)
         except UnicodeDecodeError:
             df_mira = pd.read_csv(uploaded_file, dtype=str, encoding="latin1")
     
