@@ -641,15 +641,17 @@ with tab2:
 
             # KPIs por conduta
             st.markdown("#### Condutas a serem tomadas")
-
+            
+            # Contagem de conduta agrupada por id_oci_paciente (OCIs únicas)
             cont_conduta = (
                 df_filtrado
-                .groupby("conduta")
-                .size()
+                .drop_duplicates(subset=["id_oci_paciente", "conduta"])
+                .groupby("conduta")["id_oci_paciente"]
+                .nunique()
                 .reset_index(name="quantidade")
                 .sort_values("quantidade", ascending=False)
             )
-
+            
             # Exibe as condutas em blocos de até 4 por linha
             for i in range(0, len(cont_conduta), 4):
                 cols = st.columns(4)
@@ -660,6 +662,7 @@ with tab2:
                             label=row["conduta"],
                             value=f"{row['quantidade']:,}".replace(",", ".")
                         )
+
 
             st.markdown("---")
 
