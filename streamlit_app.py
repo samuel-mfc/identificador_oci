@@ -376,9 +376,9 @@ if uploaded_file is not None:
         df_mira = pd.read_excel(uploaded_file, dtype=str)
 
     st.write("Colunas carregadas:", df_mira.columns.tolist())
-    else:
-        st.error("Formato de arquivo não reconhecido. Envie CSV ou XLSX.")
-        st.stop()
+else:
+    st.error("Formato de arquivo não reconhecido. Envie CSV ou XLSX.")
+    st.stop()
 
 
     # 2) Bases auxiliares
