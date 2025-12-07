@@ -362,22 +362,39 @@ oci_identificada = None
 # Processamento só se houver arquivo
 # =========================================================
 if uploaded_file is not None:
-    # 1) Ler MIRA
-    # (mantive read_csv, se quiser realmente aceitar Excel podemos ajustar depois)
     nome_arquivo = uploaded_file.name.lower()
-    
+
+    # --- Apenas CSV com separador ";" ---
     if nome_arquivo.endswith(".csv"):
         try:
-            df_mira = pd.read_csv(uploaded_file, dtype=str, encoding="utf-8")
+            # Tentamos ler explicitamente com ";"
+            df_mira = pd.read_csv(uploaded_file, dtype=str, encoding="utf-8", sep=";")
         except UnicodeDecodeError:
-            df_mira = pd.read_csv(uploaded_file, dtype=str, encoding="latin1")
-    
-    elif nome_arquivo.endswith((".xlsx", ".xls")):
-        df_mira = pd.read_excel(uploaded_file, dtype=str)
-    else:
-        st.error("Formato de arquivo não reconhecido. Envie CSV ou XLSX.")
-        st.stop()
+            # Caso o encoding não seja UTF-8, tentamos latin1
+            uploaded_file.seek(0)
+            df_mira = pd.read_csv(uploaded_file, dtype=str, encoding="latin1", sep=";")
+        except Exception:
+            # Se der erro de separador (ex.: o arquivo usa vírgula)
+            st.error(
+                "Arquivo CSV inválido. Este sistema aceita apenas CSV com separador ponto e vírgula (;).\n\n"
+                "Abra o arquivo e salve novamente usando o separador ';'."
+            )
+            st.stop()
 
+    # --- Excel permitido normalmente ---
+    elif nome_arquivo.endswith((".xlsx", ".xls")):
+        try:
+            df_mira = pd.read_excel(uploaded_file, dtype=str)
+        except ImportError:
+            st.error(
+                "Este ambiente não está configurado para ler arquivos Excel.\n"
+                "Por favor, envie o arquivo em formato CSV com separador ';'."
+            )
+            st.stop()
+
+    else:
+        st.error("Formato de arquivo não reconhecido. Envie CSV (com ';') ou XLSX.")
+        st.stop()
 
     # 2) Bases auxiliares
     df_pate, pacotes, cid, oci_nome = carregar_bases_auxiliares()
