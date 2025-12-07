@@ -481,7 +481,7 @@ with tab1:
     - A coluna **dt_execucao** é usada para identificar competência e determinar se o procedimento
       foi realizado; ela deve estar em formato de data conhecido (`YYYY-MM-DD` ou `DD/MM/YYYY`).
     - O arquivo deve estar no formato **CSV**, **XLS** ou **XLSX**.
-    - Caso use formato **CSV**, os separadores aceitos são vírgula `,` ou ponto e vírgula `;` (o Streamlit detecta automaticamente).
+    - Caso use formato **CSV**, o separador utilizado deve ser o ponto e vírgula `;`
     - Colunas adicionais são aceitas e não atrapalham o processamento.
 
     ### 📁 Estrutura recomendada
