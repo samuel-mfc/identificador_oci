@@ -601,8 +601,14 @@ with tab2:
             total_registros = len(df_filtrado)
             total_oci_unicas = df_filtrado["id_oci_paciente"].nunique()
             total_pacientes = df_filtrado["id_paciente"].nunique() if "id_paciente" in df_filtrado.columns else None
-
-            col1, col2, col3 = st.columns(3)
+            # Retornos não realizados, agrupados por id_oci_paciente
+            df_oci_unica = df_filtrado.drop_duplicates(subset=["id_oci_paciente"])
+            total_retornos_nao_realizados = (
+                df_oci_unica.loc[df_oci_unica["retorno"] == "Retorno não realizado", "id_oci_paciente"]
+                .nunique()
+            )
+            
+            col1, col2, col3, col4 = st.columns(4)
 
             with col1:
                 st.metric(
@@ -627,6 +633,11 @@ with tab2:
                         label="Usuários identificados",
                         value="--"
                     )
+            with col4:
+                st.metric(
+                    label="Retorno não realizado (por OCI)",
+                    value=f"{total_retornos_nao_realizados:,}".replace(",", ".")
+                )
 
             # KPIs por conduta
             st.markdown("#### Condutas a serem tomadas")
