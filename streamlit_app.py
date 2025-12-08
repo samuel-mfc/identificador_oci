@@ -484,11 +484,10 @@ if uploaded_file is not None:
     # =====================================================
     st.sidebar.subheader("Filtros principais")
 
-    condutas = sorted(oci_identificada['conduta'].dropna().unique().tolist()) if 'conduta' in oci_identificada.columns else []
-    conduta_sel = st.sidebar.multiselect(
-        "Conduta",
-        options=condutas,
-        default=condutas
+    qual_oci_sel = st.sidebar.multiselect(
+        "Qualificação OCI",
+        options=qual_oci_opcoes,
+        default=qual_oci_opcoes
     )
 
     oci_nomes = sorted(oci_identificada['no_oci'].dropna().unique().tolist()) if 'no_oci' in oci_identificada.columns else []
@@ -498,21 +497,16 @@ if uploaded_file is not None:
         default=oci_nomes[:20] if len(oci_nomes) > 20 else oci_nomes
     )
 
-    cid_options = ["Todos", "Compatível", "Incompatível"]
-    cid_choice = st.sidebar.radio("Compatibilidade CID", cid_options, index=0)
-
     df_filtrado = oci_identificada.copy()
-
-    if conduta_sel:
-        df_filtrado = df_filtrado[df_filtrado['conduta'].isin(conduta_sel)]
 
     if oci_sel:
         df_filtrado = df_filtrado[df_filtrado['no_oci'].isin(oci_sel)]
 
-    if cid_choice == "Compatível":
-        df_filtrado = df_filtrado[df_filtrado['cid_compativel'] == True]
-    elif cid_choice == "Incompatível":
-        df_filtrado = df_filtrado[df_filtrado['cid_compativel'] == False]
+        # Filtro por qualificação da OCI (cid_oci)
+    if 'cid_oci' in oci_identificada.columns:
+        qual_oci_opcoes = sorted(oci_identificada['cid_oci'].dropna().unique().tolist())
+    else:
+        qual_oci_opcoes = []
 
 # =====================================================
 # Abas: Instruções / Painel / Tabela
