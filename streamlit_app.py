@@ -170,6 +170,77 @@ def marcar_solicitacoes_em_pacote(df_mira, resultados):
 
     return df_out
 
+def adicionar_cid_e_status_oci(oci_identificada: pd.DataFrame) -> pd.DataFrame:
+    """
+    Cria as colunas:
+      - 'cid_oci'     -> OCI identificada / OCI potencial / OCI desqualificada
+      - 'status_oci'  -> em fila / iniciada / finalizada
+    Baseado no agrupamento por 'id_oci_paciente'.
+    """
+
+    df = oci_identificada.copy()
+
+    # Garantir datetime para dt_execucao
+    df["dt_execucao"] = pd.to_datetime(df["dt_execucao"], errors="coerce")
+
+    def resumo_grupo(g: pd.DataFrame) -> pd.Series:
+
+        # ==========================
+        # 1) CID_OCI
+        # ==========================
+        cid_vals = g["cid_compativel"].fillna(False)
+
+        if cid_vals.all():
+            cid_oci = "OCI identificada"
+        elif cid_vals.any():
+            cid_oci = "OCI potencial"
+        else:
+            cid_oci = "OCI desqualificada"
+
+        # ==========================
+        # 2) STATUS_OCI
+        # ==========================
+        dt = g["dt_execucao"]
+
+        # Caso 1 – todas dt_execucao nulas
+        if dt.isna().all():
+            status = "em fila"
+
+        else:
+            all_not_null = dt.notna().all()
+
+            if all_not_null:
+                # todas executadas → verificar última execução
+                idx_last = dt.idxmax()
+                ultimo_proc = str(g.loc[idx_last, "co_procedimento"])
+
+                if ultimo_proc.startswith("0301010"):
+                    status = "finalizada"
+                else:
+                    status = "iniciada"
+
+            else:
+                # pelo menos uma não executada e outra executada
+                status = "iniciada"
+
+        return pd.Series({
+            "cid_oci": cid_oci,
+            "status_oci": status
+        })
+
+    # Aplica por id_oci_paciente
+    resumo = (
+        df
+        .groupby("id_oci_paciente")
+        .apply(resumo_grupo)
+        .reset_index()
+    )
+
+    # Junta nas linhas originais
+    df = df.merge(resumo, on="id_oci_paciente", how="left")
+
+    return df
+
 
 def processar_mira(df_mira, df_pate, cid, oci_nome, pacotes, competencia_str=None):
     # Limpeza básica
@@ -280,77 +351,6 @@ def processar_mira(df_mira, df_pate, cid, oci_nome, pacotes, competencia_str=Non
     # ID composto
     oci_identificada['id_oci_paciente'] = (
         oci_identificada['id_paciente'].astype(str) + '|' + oci_identificada['id_pacote'].astype(str)
-    )
-
-    # Conduta
-    oci_identificada['conduta'] = np.select(
-        condlist=[
-            oci_identificada['dt_execucao'].notna() & oci_identificada['cid_compativel'],
-            oci_identificada['dt_execucao'].notna() & ~oci_identificada['cid_compativel'],
-            oci_identificada['dt_execucao'].isna() & oci_identificada['cid_compativel'],
-            oci_identificada['dt_execucao'].isna() & ~oci_identificada['cid_compativel']
-        ],
-        choicelist=[
-            'Faturar como OCI',
-            'Revisar CID antes de faturar como OCI',
-            'Executar como OCI',
-            'Revisar CID antes de executar como OCI'
-        ],
-        default='indefinido'
-    )
-    
-    # ============================================
-    # Coluna 'retorno'
-    # ============================================
-
-    # Garante que dt_execucao está em datetime
-    oci_identificada['dt_execucao'] = pd.to_datetime(
-        oci_identificada['dt_execucao'],
-        errors='coerce'
-    )
-
-    # 1) Para cada id_oci_paciente, verificar se TODAS as linhas têm dt_execucao preenchida
-    todas_executadas = (
-        oci_identificada
-          .groupby('id_oci_paciente')['dt_execucao']
-          .transform(lambda s: s.notna().all())
-    )
-
-    # 2) Pegar, para cada id_oci_paciente, a LINHA com dt_execucao mais recente
-    #    (ignorando linhas sem dt_execucao)
-    df_ult = (
-        oci_identificada
-          .dropna(subset=['dt_execucao'])               # só quem tem execução
-          .sort_values('dt_execucao')                   # ordena por data
-          .groupby('id_oci_paciente')
-          .tail(1)[['id_oci_paciente', 'co_procedimento']]
-    )
-
-    # 3) Verificar se o co_procedimento dessa linha mais recente começa com "0301010"
-    df_ult['ultimo_0301010'] = (
-        df_ult['co_procedimento']
-          .astype(str)
-          .str.startswith('0301010')
-    )
-
-    # 4) Transformar em uma série indexada por id_oci_paciente
-    proc_ultimo = df_ult.set_index('id_oci_paciente')['ultimo_0301010']
-
-    # 5) Espalhar essa condição para todas as linhas do respectivo id_oci_paciente
-    cond_ultimo_0301010 = (
-        oci_identificada['id_oci_paciente']
-          .map(proc_ultimo)
-          .fillna(False)   # se não tiver última execução válida, considera False
-    )
-
-    # 6) Regra final convertida para texto
-    #    True se:
-    #      - última execução é 0301010*  E
-    #      - todas as linhas do id_oci_paciente têm dt_execucao preenchida
-    #    Caso contrário, False
-    oci_identificada['retorno'] = (
-        (todas_executadas & cond_ultimo_0301010)
-        .map({True: "Retorno realizado", False: "Retorno não realizado"})
     )
 
     # Ordena por paciente
