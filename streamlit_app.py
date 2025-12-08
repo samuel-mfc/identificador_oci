@@ -476,37 +476,52 @@ if uploaded_file is not None:
             pacotes=pacotes,
             competencia_str=competencia_str
         )
-
+    
+        # 👉 adiciona colunas 'cid_oci' e 'status_oci' por id_oci_paciente
+        oci_identificada = adicionar_cid_e_status_oci(oci_identificada)
+    
     st.success("Processamento concluído! Confira o painel e utilize os filtros para exportar a tabela com os dados que quiser.")
+
 
     # =====================================================
     # Filtros principais
     # =====================================================
     st.sidebar.subheader("Filtros principais")
-
-    oci_nomes = sorted(oci_identificada['no_oci'].dropna().unique().tolist()) if 'no_oci' in oci_identificada.columns else []
+    
+    # ---- 1) Definir opções de Qualificação OCI antes do widget ----
+    if 'cid_oci' in oci_identificada.columns:
+        qual_oci_opcoes = sorted(oci_identificada['cid_oci'].dropna().unique().tolist())
+    else:
+        qual_oci_opcoes = []
+    
+    # ---- 2) Campo de filtro: Qualificação OCI ----
+    qual_oci_sel = st.sidebar.multiselect(
+        "Qualificação OCI",
+        options=qual_oci_opcoes,
+        default=qual_oci_opcoes
+    )
+    
+    # ---- 3) Filtro do nome da OCI ----
+    oci_nomes = sorted(oci_identificada['no_oci'].dropna().unique().tolist()) \
+        if 'no_oci' in oci_identificada.columns else []
+    
     oci_sel = st.sidebar.multiselect(
         "Nome da OCI",
         options=oci_nomes,
         default=oci_nomes[:20] if len(oci_nomes) > 20 else oci_nomes
     )
-
+    
+    # ---- 4) Aplicar filtros ao dataframe ----
     df_filtrado = oci_identificada.copy()
-
+    
+    # Filtrar por nome da OCI
     if oci_sel:
         df_filtrado = df_filtrado[df_filtrado['no_oci'].isin(oci_sel)]
+    
+    # Filtrar por qualificação OCI
+    if qual_oci_sel:
+        df_filtrado = df_filtrado[df_filtrado['cid_oci'].isin(qual_oci_sel)]
 
-        # Filtro por qualificação da OCI (cid_oci)
-    if 'cid_oci' in oci_identificada.columns:
-        qual_oci_opcoes = sorted(oci_identificada['cid_oci'].dropna().unique().tolist())
-    else:
-        qual_oci_opcoes = []
-        
-    qual_oci_sel = st.sidebar.multiselect(
-    "Qualificação OCI",
-    options=qual_oci_opcoes,
-    default=qual_oci_opcoes
-)
 # =====================================================
 # Abas: Instruções / Painel / Tabela
 # (sempre aparecem, mesmo sem upload)
