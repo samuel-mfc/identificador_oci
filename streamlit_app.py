@@ -411,6 +411,15 @@ def carregar_bases_auxiliares():
 # Variáveis padrão (para podermos usar nas abas mesmo sem upload)
 df_filtrado = None
 oci_identificada = None
+# Controle de estado entre interações
+if "oci_identificada" not in st.session_state:
+    st.session_state["oci_identificada"] = None
+
+if "competencia_str" not in st.session_state:
+    st.session_state["competencia_str"] = None
+
+if "uploaded_file_id" not in st.session_state:
+    st.session_state["uploaded_file_id"] = None
 
 # =========================================================
 # Processamento só se houver arquivo
@@ -418,24 +427,25 @@ oci_identificada = None
 if uploaded_file is not None:
     nome_arquivo = uploaded_file.name.lower()
 
-    # --- Apenas CSV com separador ";" ---
+    # Se trocar de arquivo, zera o resultado anterior
+    if st.session_state["uploaded_file_id"] != uploaded_file.name:
+        st.session_state["uploaded_file_id"] = uploaded_file.name
+        st.session_state["oci_identificada"] = None
+
+    # --- Leitura do arquivo MIRA ---
     if nome_arquivo.endswith(".csv"):
         try:
-            # Tentamos ler explicitamente com ";"
             df_mira = pd.read_csv(uploaded_file, dtype=str, encoding="utf-8", sep=";")
         except UnicodeDecodeError:
-            # Caso o encoding não seja UTF-8, tentamos latin1
             uploaded_file.seek(0)
             df_mira = pd.read_csv(uploaded_file, dtype=str, encoding="latin1", sep=";")
         except Exception:
-            # Se der erro de separador (ex.: o arquivo usa vírgula)
             st.error(
                 "Arquivo CSV inválido. Este sistema aceita apenas CSV com separador ponto e vírgula (;).\n\n"
                 "Abra o arquivo e salve novamente usando o separador ';'."
             )
             st.stop()
 
-    # --- Excel permitido normalmente ---
     elif nome_arquivo.endswith((".xlsx", ".xls")):
         try:
             df_mira = pd.read_excel(uploaded_file, dtype=str)
@@ -445,7 +455,6 @@ if uploaded_file is not None:
                 "Por favor, envie o arquivo em formato CSV com separador ';'."
             )
             st.stop()
-
     else:
         st.error("Formato de arquivo não reconhecido. Envie CSV (com ';') ou XLSX.")
         st.stop()
@@ -453,74 +462,96 @@ if uploaded_file is not None:
     # 2) Bases auxiliares
     df_pate, pacotes, cid, oci_nome = carregar_bases_auxiliares()
 
-    # 3) Competências disponíveis
-    competencias = calcular_competencias(df_mira)
+    # 3) Formulário de parâmetros (competência ANTES de processar)
+    ano_atual = datetime.now().year
+    competencias = [f"{mes:02d}/{ano_atual}" for mes in range(1, 13)]
 
-    competencia_str = None
-    if len(competencias) > 0:
-        competencia_str = st.sidebar.selectbox(
+    # índice padrão: mês atual ou último selecionado
+    if st.session_state["competencia_str"] in competencias:
+        idx_default = competencias.index(st.session_state["competencia_str"])
+    else:
+        idx_default = datetime.now().month - 1  # mês atual (0–11)
+
+    with st.sidebar.form("form_processo_oci"):
+        st.subheader("Parâmetros de processamento")
+
+        competencia_str = st.selectbox(
             "Competência (filtra mês escolhido + mês anterior)",
             options=competencias,
-            index=len(competencias) - 1,  # por padrão, última competência
+            index=idx_default
         )
-    else:
-        st.sidebar.warning("Não foi possível calcular competências (sem dt_execucao válida).")
 
-    # 4) Processar MIRA -> OCI identificada
-    with st.spinner("Processando solicitações e identificando OCIs..."):
-        oci_identificada = processar_mira(
-            df_mira,
-            df_pate=df_pate,
-            cid=cid,
-            oci_nome=oci_nome,
-            pacotes=pacotes,
-            competencia_str=competencia_str
+        submitted = st.form_submit_button("🚀 Processar / atualizar OCIs")
+
+    # 4) Só processa quando o formulário é enviado
+    if submitted:
+        st.session_state["competencia_str"] = competencia_str
+
+        with st.spinner("Processando solicitações e identificando OCIs..."):
+            oci_identificada_proc = processar_mira(
+                df_mira,
+                df_pate=df_pate,
+                cid=cid,
+                oci_nome=oci_nome,
+                pacotes=pacotes,
+                competencia_str=competencia_str
+            )
+
+            oci_identificada_proc = adicionar_cid_e_status_oci(oci_identificada_proc)
+
+        st.session_state["oci_identificada"] = oci_identificada_proc
+
+    # 5) Se já houver resultado processado em memória, aplica filtros
+    if st.session_state["oci_identificada"] is not None:
+        oci_identificada = st.session_state["oci_identificada"]
+
+        st.success(
+            f"Processamento concluído para a competência {st.session_state['competencia_str']} "
+            "(mês selecionado + mês anterior)."
         )
-    
-        # 👉 adiciona colunas 'cid_oci' e 'status_oci' por id_oci_paciente
-        oci_identificada = adicionar_cid_e_status_oci(oci_identificada)
-    
-    st.success("Processamento concluído! Confira o painel e utilize os filtros para exportar a tabela com os dados que quiser.")
 
+        # =====================================================
+        # Filtros principais
+        # =====================================================
+        st.sidebar.subheader("Filtros principais")
 
-    # =====================================================
-    # Filtros principais
-    # =====================================================
-    st.sidebar.subheader("Filtros principais")
-    
-    # ---- 1) Definir opções de Qualificação OCI antes do widget ----
-    if 'cid_oci' in oci_identificada.columns:
-        qual_oci_opcoes = sorted(oci_identificada['cid_oci'].dropna().unique().tolist())
-    else:
-        qual_oci_opcoes = []
-    
-    # ---- 2) Campo de filtro: Qualificação OCI ----
-    qual_oci_sel = st.sidebar.multiselect(
-        "Qualificação OCI",
-        options=qual_oci_opcoes,
-        default=qual_oci_opcoes
-    )
-    
-    # ---- 3) Filtro do nome da OCI ----
-    oci_nomes = sorted(oci_identificada['no_oci'].dropna().unique().tolist()) \
-        if 'no_oci' in oci_identificada.columns else []
-    
-    oci_sel = st.sidebar.multiselect(
-        "Nome da OCI",
-        options=oci_nomes,
-        default=oci_nomes[:20] if len(oci_nomes) > 20 else oci_nomes
-    )
-    
-    # ---- 4) Aplicar filtros ao dataframe ----
-    df_filtrado = oci_identificada.copy()
-    
-    # Filtrar por nome da OCI
-    if oci_sel:
-        df_filtrado = df_filtrado[df_filtrado['no_oci'].isin(oci_sel)]
-    
-    # Filtrar por qualificação OCI
-    if qual_oci_sel:
-        df_filtrado = df_filtrado[df_filtrado['cid_oci'].isin(qual_oci_sel)]
+        # 1) Opções de Qualificação OCI (cid_oci)
+        if "cid_oci" in oci_identificada.columns:
+            qual_oci_opcoes = sorted(oci_identificada["cid_oci"].dropna().unique().tolist())
+        else:
+            qual_oci_opcoes = []
+
+        qual_oci_sel = st.sidebar.multiselect(
+            "Qualificação OCI",
+            options=qual_oci_opcoes,
+            default=qual_oci_opcoes
+        )
+
+        # 2) Filtro do nome da OCI
+        oci_nomes = sorted(oci_identificada["no_oci"].dropna().unique().tolist()) \
+            if "no_oci" in oci_identificada.columns else []
+
+        oci_sel = st.sidebar.multiselect(
+            "Nome da OCI",
+            options=oci_nomes,
+            default=oci_nomes[:20] if len(oci_nomes) > 20 else oci_nomes
+        )
+
+        # 3) Aplicar filtros ao dataframe
+        df_filtrado = oci_identificada.copy()
+
+        # Filtrar por nome da OCI
+        if oci_sel:
+            df_filtrado = df_filtrado[df_filtrado["no_oci"].isin(oci_sel)]
+
+        # Filtrar por qualificação OCI
+        if qual_oci_sel:
+            df_filtrado = df_filtrado[df_filtrado["cid_oci"].isin(qual_oci_sel)]
+
+else:
+    # Sem arquivo, mantém df_filtrado = None e oci_identificada = None
+    df_filtrado = None
+    oci_identificada = None
 
 # =====================================================
 # Abas: Instruções / Painel / Tabela
