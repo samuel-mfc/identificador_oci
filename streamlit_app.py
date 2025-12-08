@@ -484,12 +484,6 @@ if uploaded_file is not None:
     # =====================================================
     st.sidebar.subheader("Filtros principais")
 
-    qual_oci_sel = st.sidebar.multiselect(
-        "Qualificação OCI",
-        options=qual_oci_opcoes,
-        default=qual_oci_opcoes
-    )
-
     oci_nomes = sorted(oci_identificada['no_oci'].dropna().unique().tolist()) if 'no_oci' in oci_identificada.columns else []
     oci_sel = st.sidebar.multiselect(
         "Nome da OCI",
@@ -507,7 +501,12 @@ if uploaded_file is not None:
         qual_oci_opcoes = sorted(oci_identificada['cid_oci'].dropna().unique().tolist())
     else:
         qual_oci_opcoes = []
-
+        
+    qual_oci_sel = st.sidebar.multiselect(
+    "Qualificação OCI",
+    options=qual_oci_opcoes,
+    default=qual_oci_opcoes
+)
 # =====================================================
 # Abas: Instruções / Painel / Tabela
 # (sempre aparecem, mesmo sem upload)
