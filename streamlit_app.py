@@ -584,84 +584,70 @@ with tab1:
         mime=mime_type
     )
 
-with tab2:
-    st.subheader("Painel")
-
-    if df_filtrado is None:
-        st.info("👈 Carregue um arquivo MIRA na barra lateral para gerar o painel.")
-    else:
-        if not df_filtrado.empty:
-            import plotly.express as px
-
-            # ==========================================
-            # KPIs (substituem o gráfico 1)
-            # ==========================================
-            st.markdown("#### Indicadores gerais")
-
-            total_registros = len(df_filtrado)
-            total_oci_unicas = df_filtrado["id_oci_paciente"].nunique()
-            total_pacientes = df_filtrado["id_paciente"].nunique() if "id_paciente" in df_filtrado.columns else None
-            # Retornos não realizados, agrupados por id_oci_paciente
-            df_oci_unica = df_filtrado.drop_duplicates(subset=["id_oci_paciente"])
-            total_retornos_nao_realizados = (
-                df_oci_unica.loc[df_oci_unica["retorno"] == "Retorno não realizado", "id_oci_paciente"]
+        with tab2:
+            st.subheader("Painel")
+        
+            if df_filtrado is None:
+                st.info("👈 Carregue um arquivo MIRA na barra lateral para gerar o painel.")
+            else:
+                if not df_filtrado.empty:
+                    import plotly.express as px
+        
+            # KPIs – OCI encontradas por status
+            st.markdown("#### OCI encontradas")
+            
+            # Trabalhamos em nível de OCI (id_oci_paciente único)
+            df_oci_unica_status = df_filtrado.drop_duplicates(subset=["id_oci_paciente"])
+            
+            qtd_em_fila = (
+                df_oci_unica_status
+                .loc[df_oci_unica_status["status_oci"] == "em fila", "id_oci_paciente"]
+                .nunique()
+            )
+            
+            qtd_iniciada = (
+                df_oci_unica_status
+                .loc[df_oci_unica_status["status_oci"] == "iniciada", "id_oci_paciente"]
+                .nunique()
+            )
+            
+            qtd_retorno = (
+                df_oci_unica_status
+                .loc[df_oci_unica_status["status_oci"] == "retorno", "id_oci_paciente"]
+                .nunique()
+            )
+            
+            qtd_finalizada = (
+                df_oci_unica_status
+                .loc[df_oci_unica_status["status_oci"] == "finalizada", "id_oci_paciente"]
                 .nunique()
             )
             
             col1, col2, col3, col4 = st.columns(4)
-
+            
             with col1:
                 st.metric(
-                    label="Procedimentos filtrados",
-                    value=f"{total_registros:,}".replace(",", ".")
+                    label="Em fila",
+                    value=f"{qtd_em_fila:,}".replace(",", ".")
                 )
-
+            
             with col2:
                 st.metric(
-                    label="OCI identificadas",
-                    value=f"{total_oci_unicas:,}".replace(",", ".")
+                    label="Iniciadas",
+                    value=f"{qtd_iniciada:,}".replace(",", ".")
                 )
-
+            
             with col3:
-                if total_pacientes is not None:
-                    st.metric(
-                        label="Usuários identificados",
-                        value=f"{total_pacientes:,}".replace(",", ".")
-                    )
-                else:
-                    st.metric(
-                        label="Usuários identificados",
-                        value="--"
-                    )
+                st.metric(
+                    label="Realizar retorno",
+                    value=f"{qtd_retorno:,}".replace(",", ".")
+                )
+            
             with col4:
                 st.metric(
-                    label="Retornos a realizar",
-                    value=f"{total_retornos_nao_realizados:,}".replace(",", ".")
+                    label="Finalizadas",
+                    value=f"{qtd_finalizada:,}".replace(",", ".")
                 )
-
-            # KPIs por conduta
-            st.markdown("#### Condutas a serem tomadas")
-            
-            # Contagem de conduta agrupada por id_oci_paciente (OCIs únicas)
-            cont_conduta = (
-                df_filtrado
-                .drop_duplicates(subset=["id_oci_paciente", "conduta"])
-                .groupby("conduta")["id_oci_paciente"]
-                .nunique()
-                .reset_index(name="quantidade")
-                .sort_values("quantidade", ascending=False)
-            )
-            
-            # Exibe as condutas em blocos de até 4 por linha
-            for i in range(0, len(cont_conduta), 4):
-                cols = st.columns(4)
-                subset = cont_conduta.iloc[i:i+4]
-                for col, (_, row) in zip(cols, subset.iterrows()):
-                    with col:
-                        st.metric(
-                            label=row["conduta"],
-                            value=f"{row['quantidade']:,}".replace(",", ".")
-                        )
 
 
             st.markdown("---")
