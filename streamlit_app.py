@@ -9,7 +9,6 @@ import io
 from datetime import datetime
 
 
-
 # =========================================================
 # 1. Funções de processamento (adaptadas do seu script)
 # =========================================================
@@ -169,6 +168,7 @@ def marcar_solicitacoes_em_pacote(df_mira, resultados):
     df_out['em_pacote'] = df_out['id_pacote'].notna()
 
     return df_out
+
 
 def adicionar_cid_e_status_oci(oci_identificada: pd.DataFrame) -> pd.DataFrame:
     """
@@ -456,7 +456,7 @@ if uploaded_file is not None:
     # 3) Competência definida automaticamente pelo mês atual
     hoje = datetime.today()
     competencia_str = hoje.strftime("%m/%Y")
-    
+
     st.sidebar.info(f"Competência considerada: {competencia_str} (mês atual da aplicação)")
 
     # 4) Processar MIRA -> OCI identificada
@@ -470,21 +470,21 @@ if uploaded_file is not None:
             competencia_str=competencia_str
         )
 
-    st.success(f"Processamento concluído! Confira o painel e utilize os filtros para exportar a tabela com os dados que quiser.")
+    st.success("Processamento concluído! Confira o painel e utilize os filtros para exportar a tabela com os dados que quiser.")
 
     # =====================================================
     # Filtros principais
     # =====================================================
     st.sidebar.subheader("Filtros principais")
 
-    condutas = sorted(oci_identificada['conduta'].dropna().unique().tolist())
+    condutas = sorted(oci_identificada['conduta'].dropna().unique().tolist()) if 'conduta' in oci_identificada.columns else []
     conduta_sel = st.sidebar.multiselect(
         "Conduta",
         options=condutas,
         default=condutas
     )
 
-    oci_nomes = sorted(oci_identificada['no_oci'].dropna().unique().tolist())
+    oci_nomes = sorted(oci_identificada['no_oci'].dropna().unique().tolist()) if 'no_oci' in oci_identificada.columns else []
     oci_sel = st.sidebar.multiselect(
         "Nome da OCI",
         options=oci_nomes,
@@ -508,7 +508,7 @@ if uploaded_file is not None:
         df_filtrado = df_filtrado[df_filtrado['cid_compativel'] == False]
 
 # =====================================================
-# Abas: Instruções / Tabela / Gráficos
+# Abas: Instruções / Painel / Tabela
 # (sempre aparecem, mesmo sem upload)
 # =====================================================
 tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📈 Painel", "📊 Tabela final"])
@@ -591,66 +591,63 @@ with tab2:
         st.info("👈 Carregue um arquivo MIRA na barra lateral para gerar o painel.")
     else:
         if not df_filtrado.empty:
-            import plotly.express as px
+            # KPIs – OCI encontradas por status
+            st.markdown("#### OCI encontradas")
 
-    # KPIs – OCI encontradas por status
-    st.markdown("#### OCI encontradas")
-    
-    # Trabalhamos em nível de OCI (id_oci_paciente único)
-    df_oci_unica_status = df_filtrado.drop_duplicates(subset=["id_oci_paciente"])
-    
-    qtd_em_fila = (
-        df_oci_unica_status
-        .loc[df_oci_unica_status["status_oci"] == "em fila", "id_oci_paciente"]
-        .nunique()
-    )
-    
-    qtd_iniciada = (
-        df_oci_unica_status
-        .loc[df_oci_unica_status["status_oci"] == "iniciada", "id_oci_paciente"]
-        .nunique()
-    )
-    
-    qtd_retorno = (
-        df_oci_unica_status
-        .loc[df_oci_unica_status["status_oci"] == "retorno", "id_oci_paciente"]
-        .nunique()
-    )
-    
-    qtd_finalizada = (
-        df_oci_unica_status
-        .loc[df_oci_unica_status["status_oci"] == "finalizada", "id_oci_paciente"]
-        .nunique()
-    )
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric(
-            label="Em fila",
-            value=f"{qtd_em_fila:,}".replace(",", ".")
-        )
-    
-    with col2:
-        st.metric(
-            label="Iniciadas",
-            value=f"{qtd_iniciada:,}".replace(",", ".")
-        )
-    
-    with col3:
-        st.metric(
-            label="Realizar retorno",
-            value=f"{qtd_retorno:,}".replace(",", ".")
-        )
-    
-    with col4:
-        st.metric(
-            label="Finalizadas",
-            value=f"{qtd_finalizada:,}".replace(",", ".")
-        )
+            # Trabalhamos em nível de OCI (id_oci_paciente único)
+            df_oci_unica_status = df_filtrado.drop_duplicates(subset=["id_oci_paciente"])
 
+            qtd_em_fila = (
+                df_oci_unica_status
+                .loc[df_oci_unica_status["status_oci"] == "em fila", "id_oci_paciente"]
+                .nunique()
+            )
 
-        st.markdown("---")
+            qtd_iniciada = (
+                df_oci_unica_status
+                .loc[df_oci_unica_status["status_oci"] == "iniciada", "id_oci_paciente"]
+                .nunique()
+            )
+
+            qtd_retorno = (
+                df_oci_unica_status
+                .loc[df_oci_unica_status["status_oci"] == "retorno", "id_oci_paciente"]
+                .nunique()
+            )
+
+            qtd_finalizada = (
+                df_oci_unica_status
+                .loc[df_oci_unica_status["status_oci"] == "finalizada", "id_oci_paciente"]
+                .nunique()
+            )
+
+            col1, col2, col3, col4 = st.columns(4)
+
+            with col1:
+                st.metric(
+                    label="Em fila",
+                    value=f"{qtd_em_fila:,}".replace(",", ".")
+                )
+
+            with col2:
+                st.metric(
+                    label="Iniciadas",
+                    value=f"{qtd_iniciada:,}".replace(",", ".")
+                )
+
+            with col3:
+                st.metric(
+                    label="Realizar retorno",
+                    value=f"{qtd_retorno:,}".replace(",", ".")
+                )
+
+            with col4:
+                st.metric(
+                    label="Finalizadas",
+                    value=f"{qtd_finalizada:,}".replace(",", ".")
+                )
+
+            st.markdown("---")
 
             # ==========================================
             # Gráfico 2: Quantidade de OCI identificadas (horizontal)
@@ -698,12 +695,13 @@ with tab3:
         st.info("👈 Carregue um arquivo MIRA na barra lateral para visualizar a tabela.")
     else:
         st.write(f"Total de registros filtrados: {len(df_filtrado)}")
+
         # Remove colunas internas antes de exibir
         colunas_remover = ['em_pacote', 'cid_compativel', 'id_oci_paciente']
         df_exibir = df_filtrado.drop(columns=[c for c in colunas_remover if c in df_filtrado.columns])
-        
+
         st.dataframe(df_exibir, use_container_width=True)
-        
+
         # Download do dataframe filtrado (também sem as colunas internas)
         csv_filtrado = df_exibir.to_csv(index=False, sep=";")
         st.download_button(
@@ -712,4 +710,3 @@ with tab3:
             file_name="oci_identificada_filtrada.csv",
             mime="text/csv"
         )
-
