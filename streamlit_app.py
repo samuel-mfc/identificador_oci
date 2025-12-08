@@ -650,7 +650,7 @@ with tab2:
         )
 
 
-            st.markdown("---")
+        st.markdown("---")
 
             # ==========================================
             # Gráfico 2: Quantidade de OCI identificadas (horizontal)
