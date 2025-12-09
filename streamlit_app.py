@@ -208,16 +208,18 @@ def adicionar_cid_e_status_oci(oci_identificada: pd.DataFrame) -> pd.DataFrame:
 
         else:
             all_not_null = dt.notna().all()
-
             if all_not_null:
-                # todas executadas → verificar última execução
+                # todas executadas -> pode ser finalizada se último proc é 0301010*
                 idx_last = dt.idxmax()
                 ultimo_proc = str(g.loc[idx_last, "co_procedimento"])
-
                 if ultimo_proc.startswith("0301010"):
                     status = "finalizada"
                 else:
-                    status = "iniciada"
+                    # todas executadas, mas última não é 0301010 -> consideramos como "iniciada"
+                    status = "realizar retorno"
+            else:
+                # pelo menos uma execução nula e outra não nula
+                status = "iniciada"
 
             else:
                 # pelo menos uma não executada e outra executada
