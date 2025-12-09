@@ -215,8 +215,8 @@ def adicionar_cid_e_status_oci(oci_identificada: pd.DataFrame) -> pd.DataFrame:
                 if ultimo_proc.startswith("0301010"):
                     status = "finalizada"
                 else:
-                    # todas executadas, mas última não é 0301010 -> consideramos como "iniciada"
-                    status = "realizar retorno"
+                    # todas executadas, mas última não é 0301010 -> consideramos como "retorno"
+                    status = "retorno"
             else:
                 # pelo menos uma execução nula e outra não nula
                 status = "iniciada"
