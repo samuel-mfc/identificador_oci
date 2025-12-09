@@ -535,7 +535,20 @@ if uploaded_file is not None:
             default=oci_nomes[:20] if len(oci_nomes) > 20 else oci_nomes
         )
 
-        # 3) Aplicar filtros ao dataframe
+        # 3) Filtro de status da OCI
+        #    Aqui usamos a coluna 'status_oci' criada na função adicionar_cid_e_status_oci
+        if "status_oci" in oci_identificada.columns:
+            status_oci_opcoes = sorted(oci_identificada["status_oci"].dropna().unique().tolist())
+        else:
+            status_oci_opcoes = []
+
+        status_oci_sel = st.sidebar.multiselect(
+            "Status da OCI",
+            options=status_oci_opcoes,
+            default=status_oci_opcoes  # por padrão, seleciona todos os status disponíveis
+        )
+
+        # 4) Aplicar filtros ao dataframe
         df_filtrado = oci_identificada.copy()
 
         # Filtrar por nome da OCI
@@ -545,6 +558,11 @@ if uploaded_file is not None:
         # Filtrar por qualificação OCI
         if qual_oci_sel:
             df_filtrado = df_filtrado[df_filtrado["cid_oci"].isin(qual_oci_sel)]
+
+        # Filtrar por status da OCI
+        if status_oci_sel:
+            df_filtrado = df_filtrado[df_filtrado["status_oci"].isin(status_oci_sel)]
+
 
 else:
     # Sem arquivo, mantém df_filtrado = None e oci_identificada = None
