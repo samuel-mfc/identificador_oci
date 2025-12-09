@@ -221,10 +221,6 @@ def adicionar_cid_e_status_oci(oci_identificada: pd.DataFrame) -> pd.DataFrame:
                 # pelo menos uma execução nula e outra não nula
                 status = "iniciada"
 
-            else:
-                # pelo menos uma não executada e outra executada
-                status = "retorno"
-
         return pd.Series({
             "cid_oci": cid_oci,
             "status_oci": status
