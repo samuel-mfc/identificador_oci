@@ -838,11 +838,7 @@ with tab2:
                 cont_oci,
                 x="id_oci_paciente",
                 y="no_oci",
-                orientation="h",
-                labels={
-                    "id_oci_paciente": "Quantidade de OCIs únicas",
-                    "no_oci": "OCI"
-                }
+                orientation="h"
             )
 
             fig2.update_traces(
