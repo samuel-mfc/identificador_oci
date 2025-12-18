@@ -551,14 +551,42 @@ if uploaded_file is not None:
         if st.session_state["status_oci_sel"] is None:
             st.session_state["status_oci_sel"] = status_oci_opcoes
 
-                # Se veio um clique de KPI, aplicar ANTES de criar o widget
+        def _norm_status(x: str) -> str:
+            return (str(x) if x is not None else "").strip().lower()
+        
+        # opções do widget (normalizadas e originais)
+        status_oci_opcoes_raw = status_oci_opcoes  # sua lista atual
+        status_oci_opcoes_norm = [_norm_status(x) for x in status_oci_opcoes_raw]
+        
+        # --- aplica clique de KPI (force) antes do widget ---
         if st.session_state.get("status_oci_force"):
             st.session_state["status_oci_sel"] = st.session_state["status_oci_force"]
             st.session_state["status_oci_force"] = None
         
+        # --- saneia o que estiver em session_state para sempre ser compatível com options ---
+        current = st.session_state.get("status_oci_sel")
+        
+        # se vier None, vira "tudo"
+        if not current:
+            current = status_oci_opcoes_raw
+        
+        # filtra apenas valores existentes nas opções (comparando por normalização)
+        current_norm = {_norm_status(x) for x in current}
+        default_sane = [
+            raw for raw, n in zip(status_oci_opcoes_raw, status_oci_opcoes_norm)
+            if n in current_norm
+        ]
+        
+        # se depois do saneamento ficar vazio, volta para "tudo"
+        if not default_sane:
+            default_sane = status_oci_opcoes_raw
+        
+        # grava de volta o valor saneado (compatível com options)
+        st.session_state["status_oci_sel"] = default_sane
+        
         st.sidebar.multiselect(
             "Status da OCI",
-            options=status_oci_opcoes,
+            options=status_oci_opcoes_raw,
             default=st.session_state["status_oci_sel"],
             key="status_oci_sel",
         )
