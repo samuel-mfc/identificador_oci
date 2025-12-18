@@ -839,7 +839,9 @@ with tab2:
                 x="id_oci_paciente",
                 y="no_oci",
                 orientation="h",
-                labels=None
+                labels={"id_oci_paciente": "",
+                        "no_oci": ""
+                       }
             )
 
             fig2.update_traces(
