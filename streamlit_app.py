@@ -850,8 +850,8 @@ with tab2:
             )
 
             fig2.update_layout(
-                height=600,
-                margin=dict(l=100)
+                height=400,
+                margin=dict(l=200)
             )
 
             st.plotly_chart(fig2, use_container_width=True)
