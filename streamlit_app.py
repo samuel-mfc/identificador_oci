@@ -416,6 +416,9 @@ if "oci_identificada" not in st.session_state:
 if "competencia_str" not in st.session_state:
     st.session_state["competencia_str"] = None
 
+if "status_oci_sel" not in st.session_state:
+    st.session_state["status_oci_sel"] = None  # será preenchido com "todos" quando houver dados
+
 if "uploaded_file_id" not in st.session_state:
     st.session_state["uploaded_file_id"] = None
 
@@ -536,16 +539,20 @@ if uploaded_file is not None:
         )
 
         # 3) Filtro de status da OCI
-        #    Aqui usamos a coluna 'status_oci' criada na função adicionar_cid_e_status_oci
         if "status_oci" in oci_identificada.columns:
             status_oci_opcoes = sorted(oci_identificada["status_oci"].dropna().unique().tolist())
         else:
             status_oci_opcoes = []
-
-        status_oci_sel = st.sidebar.multiselect(
+        
+        # se ainda não tiver valor salvo, inicializa com "todos"
+        if st.session_state["status_oci_sel"] is None:
+            st.session_state["status_oci_sel"] = status_oci_opcoes
+        
+        st.sidebar.multiselect(
             "Status da OCI",
             options=status_oci_opcoes,
-            default=status_oci_opcoes  # por padrão, seleciona todos os status disponíveis
+            default=st.session_state["status_oci_sel"],
+            key="status_oci_sel",
         )
 
         # 4) Aplicar filtros ao dataframe
@@ -559,9 +566,12 @@ if uploaded_file is not None:
         if qual_oci_sel:
             df_filtrado = df_filtrado[df_filtrado["cid_oci"].isin(qual_oci_sel)]
 
+        status_oci_sel = st.session_state["status_oci_sel"]
+        
         # Filtrar por status da OCI
         if status_oci_sel:
             df_filtrado = df_filtrado[df_filtrado["status_oci"].isin(status_oci_sel)]
+
 
 
 else:
@@ -690,6 +700,11 @@ with tab2:
                     label="Em fila",
                     value=f"{qtd_em_fila:,}".replace(",", ".")
                 )
+            
+                if st.button("Filtrar tabela: Em fila", key="btn_filtrar_em_fila", use_container_width=True):
+                    st.session_state["status_oci_sel"] = ["em fila"]
+                    st.rerun()
+            
 
             with col2:
                 st.metric(
@@ -697,18 +712,30 @@ with tab2:
                     value=f"{qtd_iniciada:,}".replace(",", ".")
                 )
 
+                if st.button("Filtrar tabela: Iniciadas", key="btn_filtrar_iniciada", use_container_width=True):
+                    st.session_state["status_oci_sel"] = ["iniciada"]
+                    st.rerun()
+
             with col3:
                 st.metric(
                     label="Realizar retorno",
                     value=f"{qtd_retorno:,}".replace(",", ".")
                 )
-
+                
+                if st.button("Filtrar tabela: Realizar retorno", key="btn_filtrar_retorno", use_container_width=True):
+                    st.session_state["status_oci_sel"] = ["retorno"]
+                    st.rerun()
+                    
             with col4:
                 st.metric(
                     label="Finalizadas",
                     value=f"{qtd_finalizada:,}".replace(",", ".")
                 )
-
+                
+                if st.button("Filtrar tabela: Finalizadas", key="btn_filtrar_finalizada", use_container_width=True):
+                    st.session_state["status_oci_sel"] = ["finalizada"]
+                    st.rerun()
+                    
             st.markdown("---")
 
             # ==========================================
