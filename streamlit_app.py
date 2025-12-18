@@ -550,6 +550,11 @@ if uploaded_file is not None:
         # se ainda não tiver valor salvo, inicializa com "todos"
         if st.session_state["status_oci_sel"] is None:
             st.session_state["status_oci_sel"] = status_oci_opcoes
+
+                # Se veio um clique de KPI, aplicar ANTES de criar o widget
+        if st.session_state.get("status_oci_force"):
+            st.session_state["status_oci_sel"] = st.session_state["status_oci_force"]
+            st.session_state["status_oci_force"] = None
         
         st.sidebar.multiselect(
             "Status da OCI",
