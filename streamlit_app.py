@@ -851,7 +851,7 @@ with tab2:
             )
 
             fig2.update_layout(
-                height=600,
+                height=500,
                 margin=dict(l=200)
             )
 
