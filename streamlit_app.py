@@ -377,6 +377,10 @@ def calcular_competencias(df_mira):
     competencias = meses.strftime('%m/%Y').tolist()
     return competencias
 
+def reset_filtros():
+    st.session_state["status_oci_sel"] = status_oci_opcoes_raw.copy()
+    st.session_state["status_oci_force"] = None
+    # futuros filtros aqui
 
 # =========================================================
 # 2. Interface Streamlit
@@ -591,6 +595,10 @@ if uploaded_file is not None:
             key="status_oci_sel",
         )
 
+        if st.sidebar.button("Limpar filtros", use_container_width=True):
+            reset_filtros()
+            st.rerun()
+            
         # 4) Aplicar filtros ao dataframe
         df_filtrado = oci_identificada.copy()
 
