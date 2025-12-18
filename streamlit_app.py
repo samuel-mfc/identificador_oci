@@ -738,7 +738,7 @@ with tab2:
                 )
             
                 if st.button("Filtrar tabela: Em fila", key="btn_filtrar_em_fila", use_container_width=True):
-                    st.session_state["status_oci_force"] = ["iniciada"]
+                    st.session_state["status_oci_force"] = ["em fila"]
                     st.rerun()
             
 
