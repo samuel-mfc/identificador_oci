@@ -414,6 +414,10 @@ def carregar_bases_auxiliares():
 df_filtrado = None
 oci_identificada = None
 # Controle de estado entre interações
+
+if "reset_filtros" not in st.session_state:
+    st.session_state["reset_filtros"] = False
+
 if "status_oci_force" not in st.session_state:
     st.session_state["status_oci_force"] = None
 
@@ -547,58 +551,83 @@ if uploaded_file is not None:
 
         # 3) Filtro de status da OCI
         if "status_oci" in oci_identificada.columns:
-            status_oci_opcoes = sorted(oci_identificada["status_oci"].dropna().unique().tolist())
+            status_oci_opcoes = sorted(
+                oci_identificada["status_oci"].dropna().unique().tolist()
+            )
         else:
             status_oci_opcoes = []
         
-        # se ainda não tiver valor salvo, inicializa com "todos"
-        if st.session_state["status_oci_sel"] is None:
-            st.session_state["status_oci_sel"] = status_oci_opcoes
-
+        status_oci_opcoes_raw = status_oci_opcoes.copy()
+        
+        
         def _norm_status(x: str) -> str:
             return (str(x) if x is not None else "").strip().lower()
         
-        # opções do widget (normalizadas e originais)
-        status_oci_opcoes_raw = status_oci_opcoes  # sua lista atual
-        status_oci_opcoes_norm = [_norm_status(x) for x in status_oci_opcoes_raw]
         
-        # --- aplica clique de KPI (force) antes do widget ---
+        # -------------------------------------------------
+        # RESET GLOBAL — SEMPRE ANTES DOS WIDGETS
+        # -------------------------------------------------
+        if st.session_state.get("reset_filtros"):
+            st.session_state["status_oci_force"] = None
+        
+            if "status_oci_sel" in st.session_state:
+                del st.session_state["status_oci_sel"]
+        
+            st.session_state["reset_filtros"] = False
+        
+        
+        # -------------------------------------------------
+        # APLICA CLIQUE DE KPI (force)
+        # -------------------------------------------------
         if st.session_state.get("status_oci_force"):
             st.session_state["status_oci_sel"] = st.session_state["status_oci_force"]
             st.session_state["status_oci_force"] = None
         
-        # --- saneia o que estiver em session_state para sempre ser compatível com options ---
-        current = st.session_state.get("status_oci_sel")
         
-        # se vier None, vira "tudo"
-        if not current:
-            current = status_oci_opcoes_raw
+        # -------------------------------------------------
+        # INICIALIZA SE NÃO EXISTIR
+        # -------------------------------------------------
+        if "status_oci_sel" not in st.session_state:
+            st.session_state["status_oci_sel"] = status_oci_opcoes_raw.copy()
         
-        # filtra apenas valores existentes nas opções (comparando por normalização)
+        
+        # -------------------------------------------------
+        # SANEAMENTO
+        # -------------------------------------------------
+        current = st.session_state.get("status_oci_sel", status_oci_opcoes_raw)
+        
         current_norm = {_norm_status(x) for x in current}
+        opcoes_norm = [_norm_status(x) for x in status_oci_opcoes_raw]
+        
         default_sane = [
-            raw for raw, n in zip(status_oci_opcoes_raw, status_oci_opcoes_norm)
+            raw for raw, n in zip(status_oci_opcoes_raw, opcoes_norm)
             if n in current_norm
         ]
         
-        # se depois do saneamento ficar vazio, volta para "tudo"
         if not default_sane:
-            default_sane = status_oci_opcoes_raw
+            default_sane = status_oci_opcoes_raw.copy()
         
-        # grava de volta o valor saneado (compatível com options)
         st.session_state["status_oci_sel"] = default_sane
         
+        
+        # -------------------------------------------------
+        # WIDGET
+        # -------------------------------------------------
         st.sidebar.multiselect(
             "Status da OCI",
             options=status_oci_opcoes_raw,
             default=st.session_state["status_oci_sel"],
             key="status_oci_sel",
         )
-
+        
+        
+        # -------------------------------------------------
+        # BOTÃO LIMPAR FILTROS
+        # -------------------------------------------------
         if st.sidebar.button("Limpar filtros", use_container_width=True):
-            reset_filtros()
+            st.session_state["reset_filtros"] = True
             st.rerun()
-            
+
         # 4) Aplicar filtros ao dataframe
         df_filtrado = oci_identificada.copy()
 
