@@ -737,7 +737,7 @@ with tab2:
                     value=f"{qtd_em_fila:,}".replace(",", ".")
                 )
             
-                if st.button("Filtrar tabela: Em fila", key="btn_filtrar_em_fila", use_container_width=True):
+                if st.button("Filtrar", key="btn_filtrar_em_fila", use_container_width=True):
                     st.session_state["status_oci_force"] = ["em fila"]
                     st.rerun()
             
@@ -748,7 +748,7 @@ with tab2:
                     value=f"{qtd_iniciada:,}".replace(",", ".")
                 )
 
-                if st.button("Filtrar tabela: Iniciadas", key="btn_filtrar_iniciada", use_container_width=True):
+                if st.button("Filtrar: Iniciadas", key="btn_filtrar_iniciada", use_container_width=True):
                     st.session_state["status_oci_force"] = ["iniciada"]
                     st.rerun()
 
@@ -758,7 +758,7 @@ with tab2:
                     value=f"{qtd_retorno:,}".replace(",", ".")
                 )
                 
-                if st.button("Filtrar tabela: Realizar retorno", key="btn_filtrar_retorno", use_container_width=True):
+                if st.button("Filtrar: Realizar retorno", key="btn_filtrar_retorno", use_container_width=True):
                     st.session_state["status_oci_force"] = ["retorno"]
                     st.rerun()
                     
@@ -768,7 +768,7 @@ with tab2:
                     value=f"{qtd_finalizada:,}".replace(",", ".")
                 )
                 
-                if st.button("Filtrar tabela: Finalizadas", key="btn_filtrar_finalizada", use_container_width=True):
+                if st.button("Filtrar: Finalizadas", key="btn_filtrar_finalizada", use_container_width=True):
                     st.session_state["status_oci_force"] = ["finalizada"]
                     st.rerun()
                     
