@@ -596,6 +596,16 @@ if uploaded_file is not None:
         # -------------------------------------------------
         current = st.session_state.get("status_oci_sel", status_oci_opcoes_raw)
         
+        # garantir que current seja sempre uma lista (multiselect retorna lista)
+        if current is None:
+            current = []
+        elif isinstance(current, str):
+            current = [current]
+        elif not isinstance(current, (list, tuple, set)):
+            # fallback para qualquer outro tipo inesperado (ex.: NaN, número, etc.)
+            current = [current]
+
+        
         current_norm = {_norm_status(x) for x in current}
         opcoes_norm = [_norm_status(x) for x in status_oci_opcoes_raw]
         
