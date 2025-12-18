@@ -410,6 +410,9 @@ def carregar_bases_auxiliares():
 df_filtrado = None
 oci_identificada = None
 # Controle de estado entre interações
+if "status_oci_force" not in st.session_state:
+    st.session_state["status_oci_force"] = None
+
 if "oci_identificada" not in st.session_state:
     st.session_state["oci_identificada"] = None
 
@@ -702,7 +705,7 @@ with tab2:
                 )
             
                 if st.button("Filtrar tabela: Em fila", key="btn_filtrar_em_fila", use_container_width=True):
-                    st.session_state["status_oci_sel"] = ["em fila"]
+                    st.session_state["status_oci_force"] = ["iniciada"]
                     st.rerun()
             
 
@@ -713,7 +716,7 @@ with tab2:
                 )
 
                 if st.button("Filtrar tabela: Iniciadas", key="btn_filtrar_iniciada", use_container_width=True):
-                    st.session_state["status_oci_sel"] = ["iniciada"]
+                    st.session_state["status_oci_force"] = ["iniciada"]
                     st.rerun()
 
             with col3:
@@ -723,7 +726,7 @@ with tab2:
                 )
                 
                 if st.button("Filtrar tabela: Realizar retorno", key="btn_filtrar_retorno", use_container_width=True):
-                    st.session_state["status_oci_sel"] = ["retorno"]
+                    st.session_state["status_oci_force"] = ["retorno"]
                     st.rerun()
                     
             with col4:
@@ -733,7 +736,7 @@ with tab2:
                 )
                 
                 if st.button("Filtrar tabela: Finalizadas", key="btn_filtrar_finalizada", use_container_width=True):
-                    st.session_state["status_oci_sel"] = ["finalizada"]
+                    st.session_state["status_oci_force"] = ["finalizada"]
                     st.rerun()
                     
             st.markdown("---")
