@@ -838,7 +838,8 @@ with tab2:
                 cont_oci,
                 x="id_oci_paciente",
                 y="no_oci",
-                orientation="h"
+                orientation="h",
+                labels=None
             )
 
             fig2.update_traces(
