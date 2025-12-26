@@ -497,7 +497,7 @@ if uploaded_file is not None:
         idx_default = 0
 
     with st.sidebar.form("form_processo_oci"):
-        st.subheader("Parâmetros de processamento")
+        st.subheader("Mês de avaliação")
 
         competencia_sel = st.selectbox(
             "Selecione a competência",
@@ -505,7 +505,7 @@ if uploaded_file is not None:
             index=idx_default
         )
 
-        submitted = st.form_submit_button("🚀 Processar / atualizar OCIs")
+        submitted = st.form_submit_button("🔎 Buscar OCIs")
 
     # 4) Só processa quando o formulário é enviado
     if submitted:
