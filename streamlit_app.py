@@ -1027,8 +1027,8 @@ with tab4:
         
         Acredita que a integração entre prática clínica centrada no usuário, inteligência de dados e boa governança é fundamental para transformar a assistência, fortalecer equipes e gerar valor real para pessoas e territórios.
         
-        Essa aplicação foi desenvolvida para auxiliar na implementação das Ofertas de Cuidado Integrados no contexto do Programa Agora tem Especialistas. 
-        Foi premiada como melhor trabalho do estado do Rio de Janeiro na 20ª Mostra "Brasil, aqui tem SUS", do CONASEMS por possibilitar aos municípios a realização de um diagnóstico da sua demanda por OCI, bem como identificar usuários elegíveis para tal. 
+        Esta aplicação foi desenvolvida em parceria com a escola Patients2Phyton para auxiliar na implementação das OCI no contexto do Programa Agora tem Especialistas. 
+        Foi premiada como **melhor trabalho do estado do Rio de Janeiro na 20ª Mostra "Brasil, aqui tem SUS", do CONASEMS** por possibilitar aos municípios a realização de um diagnóstico da sua demanda por OCI, bem como identificar usuários elegíveis para tal. 
         """)
 
         st.link_button(
