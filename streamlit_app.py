@@ -772,7 +772,7 @@ with tab2:
     ### 🔑 Colunas obrigatórias
 
     - `id_registro` – identificador único do registro/linha.
-    - `id_paciente` – identificador único do paciente (CPF).
+    - `id_paciente` – identificador único do paciente (caso utilize o CPF, anonimize o dado).
     - `co_procedimento` – código SIGTAP do procedimento.
     - `dt_solicitacao` – data da solicitação do procedimento.
     - `dt_execucao` – data de execução do procedimento (pode estar em branco quando não realizado).
