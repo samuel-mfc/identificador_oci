@@ -486,7 +486,8 @@ if uploaded_file is not None:
     df_pate, pacotes, cid, oci_nome = carregar_bases_auxiliares()
 
     # 3) Formulário de parâmetros (competência ANTES de processar)
-    competencias_opcoes = gerar_competencias_ultimos_12_meses()
+    ref = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+    competencias_opcoes = gerar_competencias_ultimos_12_meses(ref=ref)
 
     # índice padrão: mês atual ou último selecionado
     if st.session_state["competencia_str"] in competencias:
