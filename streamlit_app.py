@@ -488,7 +488,7 @@ if uploaded_file is not None:
 
     # 3) Formulário de parâmetros (competência ANTES de processar)
     ref = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
-    competencias_opcoes = gerar_competencias_ultimos_12_meses(ref=ref)
+    competencias = gerar_competencias_ultimos_12_meses(ref=ref)
 
     # índice padrão: mês atual ou último selecionado
     if st.session_state["competencia_str"] in competencias:
@@ -501,7 +501,7 @@ if uploaded_file is not None:
 
         competencia_sel = st.selectbox(
             "Selecione a competência",
-            options=competencias_opcoes,
+            options=competencias,
             index=0  # mês corrente como padrão
         )
 
