@@ -998,3 +998,41 @@ with tab3:
 
 with tab4:
     st.subheader("Sobre o autor")
+
+    # Opção A (recomendada): foto salva no projeto
+    # Coloque a imagem em: assets/autor.jpg (ou .png) e ajuste o caminho abaixo
+    FOTO_PATH = os.path.join("assets", "autor.jpg")
+
+    LINKEDIN_URL = "https://www.linkedin.com/in/samuel-alencar-mfc/"  # ajuste aqui
+
+    col_foto, col_texto = st.columns([1, 2], vertical_alignment="top")
+
+    with col_foto:
+        if os.path.exists(FOTO_PATH):
+            st.image(FOTO_PATH, caption="Samuel de Sousa Alencar", use_container_width=True)
+        else:
+            # fallback: caso você não tenha colocado a foto ainda
+            st.info("Adicione sua foto em `assets/autor.jpg` para exibir aqui.")
+            # Se quiser usar URL, troque pelo st.image(FOTO_URL, ...)
+
+    with col_texto:
+        st.markdown("""
+**Samuel de Sousa Alencar**  
+
+Médico de Família e Comunidade, atuando com foco em qualificação da regulação assistencial e desenvolvimento de soluções
+analíticas para otimização de fluxos, filas e gestão do cuidado no SUS.  
+
+Este aplicativo foi desenvolvido para apoiar a identificação e análise de **Ofertas de Cuidados Integrados (OCI)**
+a partir do **Modelo de Informação de Regulação Assistencial (MIRA)**, promovendo maior visibilidade operacional e
+subsídios para tomada de decisão.
+""")
+
+        st.link_button(
+            "🔗 Acessar meu LinkedIn",
+            LINKEDIN_URL,
+            use_container_width=True
+        )
+
+    st.markdown("---")
+    st.caption("Observação: este app não substitui validação clínica ou regulatória. Use como ferramenta de apoio.")
+
