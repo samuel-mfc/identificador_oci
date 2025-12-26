@@ -512,7 +512,7 @@ if uploaded_file is not None:
         # salva a seleção do usuário
         st.session_state["competencia_str"] = competencia_sel
 
-        with st.spinner("Processando solicitações e identificando OCIs..."):
+        with st.spinner("Processando solicitações e identificando OCI..."):
             oci_identificada_proc = processar_mira(
                 df_mira,
                 df_pate=df_pate,
