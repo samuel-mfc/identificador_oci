@@ -505,7 +505,7 @@ if uploaded_file is not None:
             index=idx_default
         )
 
-        submitted = st.form_submit_button("🔎 Buscar OCIs")
+        submitted = st.form_submit_button("🔎 Buscar OCI")
 
     # 4) Só processa quando o formulário é enviado
     if submitted:
@@ -532,8 +532,7 @@ if uploaded_file is not None:
         oci_identificada = st.session_state["oci_identificada"]
 
         st.success(
-            f"Processamento concluído para a competência {st.session_state['competencia_str']} "
-            "(mês selecionado + mês anterior)."
+            f"Processamento concluído. Utilize os filtros para baixar as listas como desejar!"
         )
 
         # =====================================================
