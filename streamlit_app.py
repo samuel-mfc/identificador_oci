@@ -7,7 +7,7 @@ import streamlit as st
 import plotly.express as px
 import io
 from datetime import datetime
-
+from zoneinfo import ZoneInfo
 
 # =========================================================
 # 1. Funções de processamento (adaptadas do seu script)
@@ -357,25 +357,27 @@ def processar_mira(df_mira, df_pate, cid, oci_nome, pacotes, competencia_str=Non
     return oci_identificada
 
 
-def calcular_competencias(df_mira):
-    df = df_mira.copy()
-    df['dt_execucao'] = pd.to_datetime(df['dt_execucao'], errors='coerce')
-    procedimentos_produzidos = df.query('dt_execucao.notna()')
+def gerar_competencias_ultimos_12_meses(ref: date | None = None) -> list[str]:
+    """
+    Retorna lista de competências (YYYY-MM) dos últimos 12 meses,
+    incluindo o mês de referência.
+    Ex.: ref=2025-12 -> ["2025-12", "2025-11", ..., "2025-01"]
+    """
+    if ref is None:
+        ref = date.today()
 
-    if procedimentos_produzidos.empty:
-        return []
+    ano = ref.year
+    mes = ref.month
 
-    data_min = procedimentos_produzidos['dt_execucao'].min()
-    data_max = procedimentos_produzidos['dt_execucao'].max()
-
-    meses = pd.date_range(
-        data_min.to_period('M').to_timestamp(),
-        data_max.to_period('M').to_timestamp(),
-        freq='MS'
-    )
-
-    competencias = meses.strftime('%m/%Y').tolist()
-    return competencias
+    comps = []
+    for i in range(12):
+        y = ano
+        m = mes - i
+        while m <= 0:
+            m += 12
+            y -= 1
+        comps.append(f"{m:02d}/{y:04d}")
+    return comps
 
 def reset_filtros():
     st.session_state["status_oci_sel"] = status_oci_opcoes_raw.copy()
@@ -484,8 +486,7 @@ if uploaded_file is not None:
     df_pate, pacotes, cid, oci_nome = carregar_bases_auxiliares()
 
     # 3) Formulário de parâmetros (competência ANTES de processar)
-    ano_atual = datetime.now().year
-    competencias = [f"{mes:02d}/{ano_atual}" for mes in range(1, 13)]
+    competencias_opcoes = gerar_competencias_ultimos_12_meses()
 
     # índice padrão: mês atual ou último selecionado
     if st.session_state["competencia_str"] in competencias:
@@ -496,11 +497,12 @@ if uploaded_file is not None:
     with st.sidebar.form("form_processo_oci"):
         st.subheader("Parâmetros de processamento")
 
-        competencia_str = st.selectbox(
-            "Competência (filtra mês escolhido + mês anterior)",
-            options=competencias,
-            index=idx_default
+        competencia_sel = st.selectbox(
+            "Selecione a competência",
+            options=competencias_opcoes,
+            index=0  # mês corrente como padrão
         )
+
 
         submitted = st.form_submit_button("🚀 Processar / atualizar OCIs")
 
