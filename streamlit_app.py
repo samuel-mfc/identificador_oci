@@ -684,55 +684,55 @@ with tab1:
     CRIPTOGRAFADOR_URL = "https://drive.google.com/file/d/1qo4i8LldEXQ5E8qxeIbMdIVSQdAU0L4n/view?usp=sharing"
 
     st.markdown("""
-## Como os dados são tratados nesta aplicação
-
-### 1) Ambiente de execução
-- A execução ocorre por meio do comando `streamlit run`, em uma maquina virtual da Google Cloud Platform (GCP) sob controle do responsável pela aplicação.
-
-### 2) Fluxo de tratamento dos dados
-- O usuário realiza o **upload** de um arquivo (CSV/XLS/XLSX).
-- Os dados são transmitidos do dispositivo do usuário para a maquina virtual privada na GCP, onde são processados.
-- O processamento ocorre **em memória e/ou em arquivos temporários**, exclusivamente para execução das rotinas da aplicação.
-- Os resultados apresentados (tabelas, filtros, indicadores e painéis) são derivados unicamente do arquivo enviado.
-
-### 3) Armazenamento e retenção
-- A aplicação **não possui como finalidade o armazenamento permanente** dos arquivos enviados.
-- Contudo, por características técnicas do ambiente e do framework Streamlit, os dados podem:
-  - permanecer **temporariamente em memória** durante a sessão ativa;
-  - ser utilizados em **mecanismos internos de cache** para otimização de desempenho;
-  - ser registrados de forma limitada em **logs técnicos** do servidor em caso de erro ou falha de execução;
-  - estar sujeitos às **rotinas de backup e snapshot** da infraestrutura de nuvem, conforme políticas do ambiente.
-- Não é possível garantir retenção zero ou eliminação imediata em todas as situações, uma vez que isso depende da configuração da infraestrutura e dos serviços subjacentes.
-
-### 4) Transmissão e segurança
-- Os dados trafegam entre o navegador do usuário e o servidor por meio de conexão segura, conforme configuração do domínio.
-- Apesar das medidas de segurança adotadas, **nenhum sistema computacional é totalmente isento de riscos**.
-- A utilização de infraestrutura em nuvem implica dependência das camadas de segurança, rede e isolamento providas pelo ambiente da GCP.
-
-### 5) Principais riscos do envio de dados
-O envio de dados pessoais e/ou sensíveis pode acarretar riscos, incluindo, mas não se limitando a:
-- **exposição de identificadores diretos**, como CPF em texto puro;
-- **reidentificação indireta** por combinação de campos (datas, unidade, procedimento, localidade);
-- **exposição acidental** por compartilhamento indevido do arquivo antes ou após o upload;
-- **acesso não autorizado** decorrente de falhas operacionais, credenciais comprometidas ou incidentes de segurança;
-- **persistência não intencional** de dados em caches, logs, backups ou snapshots da infraestrutura.
-
-### 6) Recomendações de segurança e minimização
-- Utilize **somente os dados estritamente necessários** para a finalidade do processamento.
-- **Não envie dados sensíveis identificáveis**, como CPF em texto puro, telefone, e-mail, endereço ou nome completo.
-- Sempre que possível, realize **pseudonimização ou criptografia prévia** dos identificadores.
-- Mantenha arquivos de correspondência (ex.: chaves de criptografia) sob guarda exclusiva do responsável.
-- Evite o uso do aplicativo em computadores compartilhados ou ambientes não confiáveis.
-
-### 7) Executável para criptografia de CPF
-- Para auxiliar na proteção do CPF antes do upload, o autor disponibiliza um **executável que criptografa o CPF** previamente.
-- **Importante:** para o correto funcionamento do executável, a coluna que contém o CPF deve estar nomeada exatamente como `id_paciente`.
-
-## Responsabilidade do usuário
-- O upload de arquivos e todo o conteúdo submetido são de **responsabilidade exclusiva do usuário** da aplicação.
-- O usuário declara possuir **base legal, autorização e legitimidade** para o tratamento dos dados utilizados.
-- O responsável pela aplicação não se responsabiliza por uso indevido, inserção de dados sensíveis ou descumprimento de normas legais pelo usuário.
-""")
+    ## Como os dados são tratados nesta aplicação
+    
+    ### 1) Ambiente de execução
+    - A execução ocorre por meio do comando `streamlit run`, em uma maquina virtual da Google Cloud Platform (GCP) sob controle do responsável pela aplicação.
+    
+    ### 2) Fluxo de tratamento dos dados
+    - O usuário realiza o **upload** de um arquivo (CSV/XLS/XLSX).
+    - Os dados são transmitidos do dispositivo do usuário para a maquina virtual privada na GCP, onde são processados.
+    - O processamento ocorre **em memória e/ou em arquivos temporários**, exclusivamente para execução das rotinas da aplicação.
+    - Os resultados apresentados (tabelas, filtros, indicadores e painéis) são derivados unicamente do arquivo enviado.
+    
+    ### 3) Armazenamento e retenção
+    - A aplicação **não possui como finalidade o armazenamento permanente** dos arquivos enviados.
+    - Contudo, por características técnicas do ambiente e do framework Streamlit, os dados podem:
+      - permanecer **temporariamente em memória** durante a sessão ativa;
+      - ser utilizados em **mecanismos internos de cache** para otimização de desempenho;
+      - ser registrados de forma limitada em **logs técnicos** do servidor em caso de erro ou falha de execução;
+      - estar sujeitos às **rotinas de backup e snapshot** da infraestrutura de nuvem, conforme políticas do ambiente.
+    - Não é possível garantir retenção zero ou eliminação imediata em todas as situações, uma vez que isso depende da configuração da infraestrutura e dos serviços subjacentes.
+    
+    ### 4) Transmissão e segurança
+    - Os dados trafegam entre o navegador do usuário e o servidor por meio de conexão segura, conforme configuração do domínio.
+    - Apesar das medidas de segurança adotadas, **nenhum sistema computacional é totalmente isento de riscos**.
+    - A utilização de infraestrutura em nuvem implica dependência das camadas de segurança, rede e isolamento providas pelo ambiente da GCP.
+    
+    ### 5) Principais riscos do envio de dados
+    O envio de dados pessoais e/ou sensíveis pode acarretar riscos, incluindo, mas não se limitando a:
+    - **exposição de identificadores diretos**, como CPF em texto puro;
+    - **reidentificação indireta** por combinação de campos (datas, unidade, procedimento, localidade);
+    - **exposição acidental** por compartilhamento indevido do arquivo antes ou após o upload;
+    - **acesso não autorizado** decorrente de falhas operacionais, credenciais comprometidas ou incidentes de segurança;
+    - **persistência não intencional** de dados em caches, logs, backups ou snapshots da infraestrutura.
+    
+    ### 6) Recomendações de segurança e minimização
+    - Utilize **somente os dados estritamente necessários** para a finalidade do processamento.
+    - **Não envie dados sensíveis identificáveis**, como CPF em texto puro, telefone, e-mail, endereço ou nome completo.
+    - Sempre que possível, realize **pseudonimização ou criptografia prévia** dos identificadores.
+    - Mantenha arquivos de correspondência (ex.: chaves de criptografia) sob guarda exclusiva do responsável.
+    - Evite o uso do aplicativo em computadores compartilhados ou ambientes não confiáveis.
+    
+    ### 7) Executável para criptografia de CPF
+    - Para auxiliar na proteção do CPF antes do upload, o autor disponibiliza um **executável que criptografa o CPF** previamente.
+    - **Importante:** para o correto funcionamento do executável, a coluna que contém o CPF deve estar nomeada exatamente como `id_paciente`.
+    
+    ## Responsabilidade do usuário
+    - O upload de arquivos e todo o conteúdo submetido são de **responsabilidade exclusiva do usuário** da aplicação.
+    - O usuário declara possuir **base legal, autorização e legitimidade** para o tratamento dos dados utilizados.
+    - O responsável pela aplicação não se responsabiliza por uso indevido, inserção de dados sensíveis ou descumprimento de normas legais pelo usuário.
+    """)
 
     st.link_button(
         "⬇️ Baixar criptografador de CPF (.exe)",
@@ -827,7 +827,7 @@ with tab2:
         mime=mime_type
     )
     
-        # =====================================================
+    # =====================================================
     # ATENÇÃO: DADOS SENSÍVEIS + LINK DO CRIPTOGRAFADOR
     # =====================================================
     st.markdown("## Atenção")
