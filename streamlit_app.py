@@ -490,11 +490,11 @@ if uploaded_file is not None:
     ref = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
     competencias = gerar_competencias_ultimos_12_meses(ref=ref)
 
-    # índice padrão: mês atual ou último selecionado
-    if st.session_state["competencia_str"] in competencias:
+    # índice padrão: última competência escolhida; senão, mês corrente (posição 0)
+    if st.session_state.get("competencia_str") in competencias:
         idx_default = competencias.index(st.session_state["competencia_str"])
     else:
-        idx_default = datetime.now().month - 1  # mês atual (0–11)
+        idx_default = 0
 
     with st.sidebar.form("form_processo_oci"):
         st.subheader("Parâmetros de processamento")
@@ -502,15 +502,15 @@ if uploaded_file is not None:
         competencia_sel = st.selectbox(
             "Selecione a competência",
             options=competencias,
-            index=0  # mês corrente como padrão
+            index=idx_default
         )
-
 
         submitted = st.form_submit_button("🚀 Processar / atualizar OCIs")
 
     # 4) Só processa quando o formulário é enviado
     if submitted:
-        st.session_state["competencia_str"] = competencia_str
+        # salva a seleção do usuário
+        st.session_state["competencia_str"] = competencia_sel
 
         with st.spinner("Processando solicitações e identificando OCIs..."):
             oci_identificada_proc = processar_mira(
@@ -519,12 +519,13 @@ if uploaded_file is not None:
                 cid=cid,
                 oci_nome=oci_nome,
                 pacotes=pacotes,
-                competencia_str=competencia_str
+                competencia_str=competencia_sel
             )
 
             oci_identificada_proc = adicionar_cid_e_status_oci(oci_identificada_proc)
 
         st.session_state["oci_identificada"] = oci_identificada_proc
+
 
     # 5) Se já houver resultado processado em memória, aplica filtros
     if st.session_state["oci_identificada"] is not None:
