@@ -1019,12 +1019,13 @@ with tab4:
         st.markdown("""
 **Samuel de Sousa Alencar**  
 
-Médico de Família e Comunidade, atuando com foco em qualificação da regulação assistencial e desenvolvimento de soluções
-analíticas para otimização de fluxos, filas e gestão do cuidado no SUS.  
+Médico de Família e Comunidade, com atuação na interface entre assistência, gestão e inovação em saúde pública. Sua trajetória inclui experiência direta na Estratégia de Saúde da Família, funções de gestão no SUS e inovação tecnológica, sempre orientado pela melhoria da qualidade do cuidado e da organização dos serviços.
 
-Este aplicativo foi desenvolvido para apoiar a identificação e análise de **Ofertas de Cuidados Integrados (OCI)**
-a partir do **Modelo de Informação de Regulação Assistencial (MIRA)**, promovendo maior visibilidade operacional e
-subsídios para tomada de decisão.
+Atua no aprimoramento de sistemas de saúde integrados, centrados no usuário e guiados por decisões baseadas em dados. Tem formação em Administração em Saúde e competência em análise de dados aplicada a saúde.
+
+Acredita que a integração entre prática clínica centrada no usuário, inteligência de dados e boa governança é fundamental para transformar a assistência, fortalecer equipes e gerar valor real para pessoas e territórios.
+
+Essa aplicação foi desenvolvida para auxiliar na implementação das Ofertas de Cuidado Integrados no contexto do Programa Agora tem Especialistas. Foi premiada como melhor trabalho do estado do Rio de Janeiro na 20ª Mostra "Brasil, aqui tem SUS", do CONASEMS por possibilitar aos municípios a realização de um diagnóstico da sua demanda por OCI, bem como identificar usuários elegíveis para tal. 
 """)
 
         st.link_button(
