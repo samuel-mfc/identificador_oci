@@ -675,9 +675,9 @@ else:
 # Abas: Instruções / Painel / Tabela
 # (sempre aparecem, mesmo sem upload)
 # =====================================================
-tab0, tab1, tab2, tab3 = st.tabs(["✅ Termos de uso", "📘 Instruções", "📈 Painel", "👨‍⚕️ Sobre o autor"])
+tab1, tab2, tab3, tab4 = st.tabs(["✅ Termos de uso", "📘 Instruções", "📈 Painel", "👨‍⚕️ Sobre o autor"])
 
-with tab0:
+with tab1:
     st.header("✅ Termos de uso e responsabilidade pelo upload")
 
     # Substitua pela URL real do seu Google Drive
@@ -758,7 +758,7 @@ O envio de dados pessoais e/ou sensíveis pode acarretar riscos, incluindo, mas 
                 st.rerun()
 
 
-with tab1:
+with tab2:
     st.header("📘 Instruções para o arquivo MIRA")
 
     st.markdown("""
@@ -852,7 +852,7 @@ with tab1:
     st.markdown("---")
 
 
-with tab2:
+with tab3:
     st.subheader("Painel")
 
     if df_filtrado is None:
@@ -992,5 +992,5 @@ with tab2:
             mime="text/csv"
         )
 
-with tab3:
+with tab4:
     st.subheader("Sobre o autor")
