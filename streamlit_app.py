@@ -6,8 +6,10 @@ import numpy as np
 import streamlit as st
 import plotly.express as px
 import io
-from datetime import datetime
+from datetime import datetime, date
 from zoneinfo import ZoneInfo
+from typing import Optional, List
+
 
 # =========================================================
 # 1. Funções de processamento (adaptadas do seu script)
@@ -357,11 +359,10 @@ def processar_mira(df_mira, df_pate, cid, oci_nome, pacotes, competencia_str=Non
     return oci_identificada
 
 
-def gerar_competencias_ultimos_12_meses(ref: date | None = None) -> list[str]:
+def gerar_competencias_ultimos_12_meses(ref: Optional[date] = None) -> List[str]:
     """
     Retorna lista de competências (YYYY-MM) dos últimos 12 meses,
     incluindo o mês de referência.
-    Ex.: ref=2025-12 -> ["2025-12", "2025-11", ..., "2025-01"]
     """
     if ref is None:
         ref = date.today()
@@ -369,7 +370,7 @@ def gerar_competencias_ultimos_12_meses(ref: date | None = None) -> list[str]:
     ano = ref.year
     mes = ref.month
 
-    comps = []
+    comps: List[str] = []
     for i in range(12):
         y = ano
         m = mes - i
