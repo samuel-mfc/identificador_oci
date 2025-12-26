@@ -666,7 +666,7 @@ else:
 # Abas: Instruções / Painel / Tabela
 # (sempre aparecem, mesmo sem upload)
 # =====================================================
-tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📈 Painel", "📊 Tabela"])
+tab1, tab2, tab3 = st.tabs(["📘 Instruções", "📈 Painel", "👨‍⚕️ Sobre o Autor"])
 
 with tab1:
     st.header("📘 Instruções para o arquivo MIRA")
@@ -698,8 +698,6 @@ with tab1:
     ```text
     id_registro | id_paciente | co_procedimento | dt_solicitacao | dt_execucao | cbo_executante | cid_motivo
     ```
-
-    ### ℹ️ Dica
     Caso você tenha dúvidas sobre o conteúdo, abra seu arquivo antes de subir para verificar se
     os nomes das colunas estão corretos.
     """)
@@ -738,6 +736,31 @@ with tab1:
         file_name=file_name,
         mime=mime_type
     )
+    
+        # =====================================================
+    # ATENÇÃO: DADOS SENSÍVEIS + LINK DO CRIPTOGRAFADOR
+    # =====================================================
+    st.markdown("## Atenção")
+
+    st.warning(
+        "Recomendamos **não enviar dados sensíveis** para este aplicativo (ex.: CPF, telefone, e-mail, "
+        "endereço, nome completo, etc.).\n\n"
+        "Para utilizar o identificador de OCI, utilize a ferramenta abaixo para **criptografar o CPF antes** de subir a planilha.\n\n"
+        "**Importante:** para a ferramenta funcionar corretamente, a coluna do CPF deve estar nomeada exatamente como "
+        "`id_paciente`."
+    )
+
+    # Substitua pela URL real do seu Google Drive (ideal: link compartilhável direto do arquivo)
+    CRIPTOGRAFADOR_URL = "https://drive.google.com/file/d/1qo4i8LldEXQ5E8qxeIbMdIVSQdAU0L4n/view?usp=sharing"
+
+    st.link_button(
+        "⬇️ Baixar criptografador de CPF (.exe)",
+        CRIPTOGRAFADOR_URL,
+        use_container_width=True
+    )
+
+    st.markdown("---")
+
 
 with tab2:
     st.subheader("Painel")
